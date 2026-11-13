@@ -369,15 +369,44 @@ def row(j):
             f'  {IS_ON(i)}, "Now · until " + if({DAY(E(i))} = {TODAY_N}, df(HH:mm, {E(i)}), df("EEE HH:mm", {E(i)})),\n'
             f'  df(HH:mm, {S(i)}) + " – " + df(HH:mm, {E(i)}))'
             f' + if({nxt}, "  [c=" + {CI(LAKE)} + "][b]" + tf({S(i)}) + "[/b][/c]", "")$')
+    has_loc = f'ci(loc, {i}) != ""'
+    # "Leave by 14:20 · 25 min drive", from Home Assistant (Tasker: glance_leave_title / glance_leave)
+    leave = (f'$if(ci(title, {i}) = br(tasker, glance_leave_title) & br(tasker, glance_leave) != "",'
+             f' "[c=" + {CI(LAKE)} + "][b]" + br(tasker, glance_leave) + "[/b][/c]", "")$')
+    text_w = {"internal_toggles": {"text_width": 10},
+              "internal_formulas": {"text_width": f"$if({has_loc}, {IW - 104}, {IW - 48})$"}}
+
+    def t(expr, size, color, **kw):
+        m = txt(expr, size, color, text_size_type="FIXED_WIDTH", text_width=float(IW - 48), text_lines=1, **kw)
+        m["internal_toggles"].update(text_w["internal_toggles"])
+        m.setdefault("internal_formulas", {}).update(text_w["internal_formulas"])
+        return m
+
+    # Directions: opens Google Maps driving directions to the event's location (only when it has one)
+    maps = f'$"https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=" + tc(url, ci(loc, {i}))$'
+    go = visible(overlap([rect(44, 44, C(FILL_ON), 12),
+                          icon('$"direction-up-right"$', 22, C(LAKE))],
+                         position_anchor="CENTERRIGHT", position_padding_right=10.0, internal_title="Directions",
+                         internal_events=[{"type": "SINGLE_TAP", "action": "OPEN_LINK", "url": maps}]), has_loc)
     chip = overlap([
         rect(IW, 64, f"$if({IS_ON(i)}, if({NIGHT}, {FILL_ON[1]}, {FILL_ON[0]}), if({NIGHT}, {FILL[1]}, {FILL[0]}))$", 12),
         rect(4, 34, f"$ci(ccolor, {i})$", 2, anchor="CENTERLEFT", position_padding_left=14.0),
-        pad(stack([txt(f"[b]$ci(title, {i})$[/b]", 16, C(TEXT), text_size_type="FIXED_WIDTH",
-                       text_width=float(IW - 48), text_lines=1),
-                   txt(when, 13, C(MUTED), text_size_type="FIXED_WIDTH", text_width=float(IW - 48), text_lines=1)],
+        pad(stack([t(f"[b]$ci(title, {i})$[/b]", 16, C(TEXT)),
+                   t(when, 13, C(MUTED)),
+                   visible(t(leave, 13, C(LAKE)),
+                           f"ci(title, {i}) = br(tasker, glance_leave_title) & br(tasker, glance_leave) != \"\"")],
                   "VERTICAL_LEFT", 3), "CENTERLEFT", l=30),
+        go,
     ])
-    return tap(visible(strip(72, chip, title=f"Row {j + 1}"), HAS(i)), APP_CAL)
+    # a row with a "leave by" line is taller
+    chip["viewgroup_items"][0].update(internal_toggles={**chip["viewgroup_items"][0]["internal_toggles"], "shape_height": 10})
+    chip["viewgroup_items"][0].setdefault("internal_formulas", {})["shape_height"] = \
+        f'$if(ci(title, {i}) = br(tasker, glance_leave_title) & br(tasker, glance_leave) != "", 82, 64)$'
+    strip_m = strip(72, chip, title=f"Row {j + 1}")
+    strip_m["viewgroup_items"][0].update(internal_toggles={**strip_m["viewgroup_items"][0]["internal_toggles"], "shape_height": 10})
+    strip_m["viewgroup_items"][0].setdefault("internal_formulas", {})["shape_height"] = \
+        f'$if(ci(title, {i}) = br(tasker, glance_leave_title) & br(tasker, glance_leave) != "", 90, 72)$'
+    return tap(visible(strip_m, HAS(i)), APP_CAL)
 
 
 def page_button(label, can, to):

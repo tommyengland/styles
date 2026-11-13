@@ -22,6 +22,9 @@ template:
           {%- if states('sensor.met_office_warnings') not in ['none', 'unknown', 'unavailable', ''] -%}{%- set n.c = n.c + 1 -%}{%- endif -%}
           {{ n.c }}
         attributes:
+          # "Leave by 14:20 · 25 min drive" and the event it's for (kwgt_leave.yaml); "" when nothing's due
+          leave: "{{ states('sensor.kwgt_leave') if states('sensor.kwgt_leave') not in ['unknown', 'unavailable'] else '' }}"
+          leave_title: "{{ state_attr('sensor.kwgt_leave', 'title') if states('sensor.kwgt_leave') not in ['', 'unknown', 'unavailable'] else '' }}"
           bins: >-
             {%- set day = (now() + timedelta(days=1)).strftime('%Y-%m-%d') -%}
             {%- set ns = namespace(b=[]) -%}

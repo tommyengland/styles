@@ -17,6 +17,19 @@ every 15 minutes, then passes the values to KWGT.
 4. Make a token for Tasker: click your profile (bottom left) → **Security** → **Long-lived access tokens** →
    **Create token**, and name it "Tasker". Copy it now, because Home Assistant shows it only once. Don't paste it anywhere but Tasker.
 
+### When to leave (optional): `kwgt_leave.yaml`
+
+This finds your next event with a location in the coming 4 hours and gets the drive time from Waze, starting from where you are
+(Life360). From that it works out a leave-by time: start − drive − 10 minutes. It then:
+- sends a **phone notification 10 minutes before you need to leave**, with a **Directions** button;
+- shows "Leave by 14:20 · 25 min drive" on that event's row in the widget, from 2 hours before.
+
+To set it up:
+1. Copy it to `/config/packages/`. Change `notify.mobile_app_YOUR_PHONE` to your phone's notify service
+   (find it under **Developer tools → Actions** by typing `notify.mobile_app`). Check the two calendars and the tracker are the right ones.
+2. Restart Home Assistant. This package adds an `input_text`, which a reload won't pick up.
+3. Notifications need the Home Assistant Companion app on the phone, and remote access to Home Assistant.
+
 ## 2. Tasker
 
 ### Quick way: import the project

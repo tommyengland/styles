@@ -1,0 +1,132 @@
+# /config/packages/kwgt_leave.yaml
+# "When to leave": finds your next event with a location in the coming hours, asks Waze how long
+# the drive is from where you are now, and works out when to leave (drive time + a buffer for parking).
+#   - sensor.next_trip: the leave-by time (state) with the event, drive time and a Google Maps link
+#   - a phone notification LEAD minutes before you need to leave, with a "Directions" button
+#   - sensor.kwgt_glance's leave / leave_title attributes put "Leave by 14:20 · 25 min drive" on the
+#     event's row in the widget (Tasker passes them on as glance_leave / glance_leave_title)
+#
+# Before it works, set the two things marked CHANGE below: the phone's notify service, and (if
+# different) which calendars and which tracker to use. Drive times come from the Waze Travel Time
+# action (no API key or account needed).
+
+input_text:
+  kwgt_leave_notified:
+    name: Last leave-by notification sent
+    max: 255
+
+template:
+  - triggers:
+      - trigger: time_pattern
+        minutes: "/5"
+      - trigger: homeassistant
+        event: start
+    actions:
+      # Events in the next 4 hours on these calendars                                     CHANGE if needed
+      - action: calendar.get_events
+        target:
+          entity_id:
+            - calendar.family
+            - calendar.zach_sport
+        data:
+          start_date_time: "{{ now().isoformat() }}"
+          end_date_time: "{{ (now() + timedelta(hours=4)).isoformat() }}"
+        response_variable: cal
+        continue_on_error: true
+      - variables:
+          # the first timed event that hasn't started and has a location
+          trip: >-
+            {%- set ns = namespace(best=none) -%}
+            {%- for cal_id, r in (cal or {}).items() -%}
+              {%- for e in r.get('events', []) -%}
+                {%- if (e.location | default('') | trim) and (e.start | string | length) > 10
+                       and as_datetime(e.start) > now()
+                       and (ns.best is none or as_datetime(e.start) < as_datetime(ns.best.start)) -%}
+                  {%- set ns.best = e -%}
+                {%- endif -%}
+              {%- endfor -%}
+            {%- endfor -%}
+            {{ ns.best if ns.best is not none else {} }}
+          # where you are now (Life360); home if that's not available                       CHANGE if needed
+          origin: >-
+            {%- set t = 'device_tracker.life360_thomas_barrell' -%}
+            {%- set la, lo = state_attr(t, 'latitude'), state_attr(t, 'longitude') -%}
+            {{ (la ~ ',' ~ lo) if la and lo else (state_attr('zone.home', 'latitude') ~ ',' ~ state_attr('zone.home', 'longitude')) }}
+      - if: "{{ trip.get('location') }}"
+        then:
+          - action: waze_travel_time.get_travel_times
+            data:
+              origin: "{{ origin }}"
+              destination: "{{ trip.location }}"
+              region: eu
+              units: metric
+              vehicle_type: car
+            response_variable: waze
+            continue_on_error: true
+    sensor:
+      - name: "Next Trip"
+        unique_id: kwgt_next_trip
+        device_class: timestamp
+        icon: mdi-car-clock
+        # leave-by = start - drive time - 10 min buffer
+        state: >-
+          {%- set mins = ((waze | default({})).get('routes', []) | map(attribute='duration') | list | min | default(none)) -%}
+          {%- if trip.get('start') and mins is not none -%}
+            {{ (as_datetime(trip.start) - timedelta(minutes=(mins | float) + 10)).isoformat() }}
+          {%- else -%}none{%- endif -%}
+        attributes:
+          title: "{{ trip.get('summary', '') }}"
+          location: "{{ trip.get('location', '') }}"
+          start: "{{ trip.get('start', '') }}"
+          drive_mins: >-
+            {{ ((waze | default({})).get('routes', []) | map(attribute='duration') | list | min | default(0)) | round(0) | int }}
+          maps_url: >-
+            {{ 'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=' ~ (trip.get('location', '') | urlencode) }}
+
+  - sensor:
+      # For the widget, via sensor.kwgt_glance (see kwgt_glance.yaml): shown from 2 hours before leaving
+      - name: "KWGT Leave"
+        unique_id: kwgt_leave
+        state: >-
+          {%- set lb = states('sensor.next_trip') -%}
+          {%- if lb not in ['none', 'unknown', 'unavailable'] and as_datetime(lb) - now() < timedelta(hours=2) -%}
+            Leave by {{ as_local(as_datetime(lb)).strftime('%H:%M') }} · {{ state_attr('sensor.next_trip', 'drive_mins') }} min drive
+          {%- else -%}{%- endif -%}
+        attributes:
+          title: "{{ state_attr('sensor.next_trip', 'title') or '' }}"
+
+automation:
+  - alias: "KWGT: time to leave"
+    id: kwgt_time_to_leave
+    triggers:
+      # LEAD = 10 minutes' warning before the leave-by time
+      - trigger: template
+        value_template: >-
+          {%- set lb = states('sensor.next_trip') -%}
+          {{ lb not in ['none', 'unknown', 'unavailable'] and now() >= as_datetime(lb) - timedelta(minutes=10) }}
+    conditions:
+      # once per event, and not when it's a walk away
+      - "{{ states('input_text.kwgt_leave_notified') != (state_attr('sensor.next_trip', 'title') ~ '|' ~ state_attr('sensor.next_trip', 'start')) }}"
+      - "{{ (state_attr('sensor.next_trip', 'drive_mins') | int(0)) >= 3 }}"
+    actions:
+      - action: input_text.set_value
+        target:
+          entity_id: input_text.kwgt_leave_notified
+        data:
+          value: "{{ (state_attr('sensor.next_trip', 'title') ~ '|' ~ state_attr('sensor.next_trip', 'start'))[:255] }}"
+      # CHANGE: your phone's notify service (Developer tools → Actions, type "notify.mobile_app")
+      - action: notify.mobile_app_YOUR_PHONE
+        data:
+          title: "Leave by {{ as_local(as_datetime(states('sensor.next_trip'))).strftime('%H:%M') }}"
+          message: >-
+            {{ state_attr('sensor.next_trip', 'title') }} at {{ as_local(as_datetime(state_attr('sensor.next_trip', 'start'))).strftime('%H:%M') }}
+            · {{ state_attr('sensor.next_trip', 'drive_mins') }} min drive
+          data:
+            tag: kwgt-leave
+            channel: Leave by
+            importance: high
+            clickAction: "{{ state_attr('sensor.next_trip', 'maps_url') }}"
+            actions:
+              - action: URI
+                title: Directions
+                uri: "{{ state_attr('sensor.next_trip', 'maps_url') }}"

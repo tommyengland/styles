@@ -102,7 +102,9 @@ xml = f"""<TaskerData sr="" dvi="1" tv="6.3.13">
 		</Action>
 {kwgt_var("act2", "glance_bins", "%http_data.attributes.bins")}
 {kwgt_var("act3", "glance_alerts", "%http_data.attributes.alerts")}
-		<Action sr="act4" ve="7">
+{kwgt_var("act4", "glance_leave", "%http_data.attributes.leave")}
+{kwgt_var("act5", "glance_leave_title", "%http_data.attributes.leave_title")}
+		<Action sr="act6" ve="7">
 			<code>38</code>
 		</Action>
 	</Task>
