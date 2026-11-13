@@ -48,16 +48,23 @@ def CI(tok):  # the same, for use inside a larger expression
     return f"if({NIGHT}, \"{tok[1]}\", \"{tok[0]}\")"
 
 
-SKY = (f"$if({DAWN} | {DUSK}, #FFB0705A,\n"
-       f"  {NIGHT}, if(wi(icon) = CLEAR | wi(icon) = PCLOUDY, #FF1E2B3A, #FF29313A),\n"
-       "  wi(icon) = CLEAR, #FF4C86A8,\n"
-       "  wi(icon) = PCLOUDY | wi(icon) = MCLOUDY, #FF5B819A,\n"
-       "  wi(icon) = CLOUDY, #FF66777F,\n"
-       "  wi(icon) = RAIN | wi(icon) = SHOWER, #FF52646F,\n"
-       "  wi(icon) = TSTORM, #FF434B57,\n"
-       "  wi(icon) = SNOW | wi(icon) = SLEET | wi(icon) = HAIL, #FF7D8E99,\n"
-       "  wi(icon) = FOG, #FF77858A,\n"
-       "  #FF5B819A)$")
+# Sky: a vertical gradient, top colour -> horizon colour, chosen by the sun and the weather
+def sky(top):
+    k = 0 if top else 1
+    pick = lambda pair: pair[k]
+    return (f"$if({DAWN} | {DUSK}, {pick(('#FF5A4E7A', '#FFD98B6A'))},\n"
+            f"  {NIGHT}, if(wi(icon) = CLEAR | wi(icon) = PCLOUDY, {pick(('#FF0E1726', '#FF243650'))}, {pick(('#FF1C232C', '#FF333C47'))}),\n"
+            f"  wi(icon) = CLEAR, {pick(('#FF34709E', '#FF79A9C8'))},\n"
+            f"  wi(icon) = PCLOUDY | wi(icon) = MCLOUDY, {pick(('#FF4A7290', '#FF86A3B6'))},\n"
+            f"  wi(icon) = CLOUDY, {pick(('#FF56666F', '#FF86939A'))},\n"
+            f"  wi(icon) = RAIN | wi(icon) = SHOWER, {pick(('#FF3E4F60', '#FF66788A'))},\n"
+            f"  wi(icon) = TSTORM, {pick(('#FF2B313B', '#FF4F5865'))},\n"
+            f"  wi(icon) = SNOW | wi(icon) = SLEET | wi(icon) = HAIL, {pick(('#FF667A89', '#FF94A3AD'))},\n"
+            f"  wi(icon) = FOG, {pick(('#FF6B797E', '#FF919DA1'))},\n"
+            f"  {pick(('#FF4A7290', '#FF86A3B6'))})$")
+
+
+SKY, SKY_LOW = sky(True), sky(False)
 
 # Taps open whatever the phone uses by default, so they work whichever apps are installed:
 # the default clock (alarms) and calendar apps, and the kiosk's own Weather page.
@@ -210,11 +217,121 @@ hours = stack([rect(SKY_W - 2 * SP, 1, SKY_LINE, anchor="TOPLEFT"),
               "VERTICAL_LEFT", 8, internal_title="Next 6 hours")
 tap(hours, APP_WEATHER)
 
+# ---------- the atmosphere drawn on the sky (all still shapes; positions fixed, shown by the weather) ----------
+import random
+rnd = random.Random(7)          # fixed seed: the same scatter every build
+# Keep drops, flakes and stars off the writing: the date/time, the "now" block, and the forecast row.
+# Tight boxes round each piece of writing / icon, so the rest of the sky stays evenly scattered.
+_HC = [SP + (SKY_W - 2 * SP) / 6 * (k + 0.5) for k in range(6)]          # forecast column centres
+TEXT_BOXES = ([(SP - 4, 10, 130, 50), (SP - 4, 52, 170, 126),                # date + day, time
+               (SKY_W - 140, 8, SKY_W - SP + 4, 74), (SKY_W - 175, 74, SKY_W - SP + 4, 134)]  # now block
+              + [(c - 24, 180, c + 24, 256) for c in _HC])                    # each forecast hour
+
+
+def spot(w, h, top=6, bottom=None):
+    bottom = bottom or SKY_H - h - 6
+    while True:
+        x, y = rnd.uniform(10, SKY_W - w - 10), rnd.uniform(top, bottom)
+        if not any(x + w > a and x < c and y + h > b and y < d for a, b, c, d in TEXT_BOXES):
+            return x, y
+IC = "wi(icon)"
+WET = f"({IC} = RAIN | {IC} = SHOWER | {IC} = TSTORM | {IC} = SLEET)"
+WHITE = lambda a: f"#{a:02X}FFFFFF"
+
+
+def dot(x, y, d, color, cond=None, **kw):
+    m = rect(d, d, color, d / 2, anchor="TOPLEFT", position_offset_x=float(x), position_offset_y=float(y), **kw)
+    return visible(m, cond) if cond else m
+
+
+def glyph(name, x, y, size, color, title):
+    """A Weather Icons shape (raindrop / snowflake) placed on the sky."""
+    return {"internal_type": "FontIconModule", "internal_title": title,
+            "icon_set": "iconify://wi?name=Weather%20Icons", "icon_icon": name, "icon_size": float(size),
+            "paint_color": color, "position_anchor": "TOPLEFT",
+            "position_offset_x": float(x), "position_offset_y": float(y)}
+
+
+def raindrop(x, y, size, n):
+    """A real drop shape (teardrop), sizes varied; the first N show, N by how heavy the rain is."""
+    shown = f"{WET} & {n} < if({IC} = TSTORM, 44, {IC} = RAIN, 32, 18)"
+    return visible(glyph("raindrop", x, y, size, WHITE(0x8C), "Raindrop"), shown)
+
+
+def flake(x, y, size, n):
+    """A six-armed snowflake (hail: small solid stones)."""
+    shown = f"({IC} = SNOW & {n} < 40) | ({IC} = SLEET & {n} < 16) | ({IC} = HAIL & {n} < 26)"
+    m = visible(glyph("snowflake-cold", x, y, size, WHITE(0xD0), "Snowflake"), shown)
+    m["internal_toggles"]["icon_icon"] = 10
+    m["internal_formulas"]["icon_icon"] = f'$if({IC} = HAIL, "hail", "snowflake-cold")$'
+    return m
+
+
+def cloud(x, y, scale, alpha, cond):
+    """A soft cloud: overlapping translucent circles on a flat base."""
+    puffs = [(0, 14, 26), (16, 4, 34), (40, 10, 28), (58, 18, 20)]
+    parts = [rect(d * scale, d * scale, WHITE(alpha), d * scale / 2, anchor="TOPLEFT",
+                  position_offset_x=float(px * scale), position_offset_y=float(py * scale))
+             for px, py, d in puffs]
+    parts.append(rect(74 * scale, 12 * scale, WHITE(alpha), 6 * scale, anchor="TOPLEFT",
+                      position_offset_x=0.0, position_offset_y=float(28 * scale)))
+    return visible(overlap(parts, position_anchor="TOPLEFT", position_offset_x=float(x),
+                           position_offset_y=float(y), internal_title="Cloud"), cond)
+
+
+# Sun / moon along a low arc across the sky: x by how far through the day (or night) it is,
+# height a parabola peaking mid-arc.
+ARC_L, ARC_R, ARC_BASE, ARC_H = 36, SKY_W - 36, 168, 112
+DAY_F = f"(({MIN_NOW} - {SR}) / mu(max, 1, {SS} - {SR}))"
+NIGHT_LEN = f"(1440 - {SS} + {SR})"
+NIGHT_F = f"(if({MIN_NOW} >= {SS}, {MIN_NOW} - {SS}, {MIN_NOW} + 1440 - {SS}) / {NIGHT_LEN})"
+
+
+def body(frac, d, color, cond, glow):
+    x = f"${ARC_L} + {frac} * {ARC_R - ARC_L} - {glow / 2}$"
+    y = f"${ARC_BASE} - 4 * {ARC_H} * {frac} * (1 - {frac}) - {glow / 2}$"
+    m = overlap([rect(glow, glow, "#33FFE9A8" if color == "sun" else WHITE(0x22), glow / 2, anchor="CENTER"),
+                 rect(d, d, "#FFFFE9A8" if color == "sun" else "#FFF1EEE2", d / 2, anchor="CENTER")],
+                position_anchor="TOPLEFT", internal_title="Sun" if color == "sun" else "Moon",
+                internal_toggles={"position_offset_x": 10, "position_offset_y": 10},
+                internal_formulas={"position_offset_x": x, "position_offset_y": y})
+    return visible(m, cond)
+
+
+arc = [dot(ARC_L + f * (ARC_R - ARC_L) - 1.5, ARC_BASE - 4 * ARC_H * f * (1 - f) - 1.5, 3, WHITE(0x26))
+       for f in [i / 16 for i in range(17)]]
+CLEARISH = f"({IC} = CLEAR | {IC} = PCLOUDY | {IC} = MCLOUDY)"
+atmosphere = overlap(
+    [rect(SKY_W, SKY_H, "#00000000", anchor="TOPLEFT")]
+    # stars on clear nights
+    + [dot(*spot(3, 3, 8, 168), rnd.choice([1.5, 2, 2, 2.5, 3]),
+           WHITE(rnd.choice([0x55, 0x77, 0x99, 0xBB])), f"{NIGHT} & ({IC} = CLEAR | {IC} = PCLOUDY)",
+           internal_title="Star") for _ in range(22)]
+    + arc
+    + [body(DAY_F, 20, "sun", f"{MIN_NOW} >= {SR} & {MIN_NOW} < {SS} & {CLEARISH}", 40),
+       body(NIGHT_F, 16, "moon", f"{NIGHT} & {IC} != TSTORM", 30)]
+    # clouds: one when partly cloudy, three when mostly cloudy / overcast / wet
+    + [cloud(SKY_W * 0.55, 22, 1.0, 0x30, f"({IC} != CLEAR & {IC} != FOG)"),
+       cloud(SKY_W * 0.18, 58, 0.8, 0x24, f"({IC} = MCLOUDY | {IC} = CLOUDY | {WET} | {IC} = SNOW)"),
+       cloud(SKY_W * 0.74, 92, 0.7, 0x20, f"({IC} = CLOUDY | {WET} | {IC} = SNOW)")]
+    # fog: soft bands
+    + [visible(rect(SKY_W * w, 14, WHITE(0x2A), 7, anchor="TOPLEFT", position_offset_x=float(SKY_W * x),
+                    position_offset_y=float(y), internal_title="Fog"), f"{IC} = FOG")
+       for x, y, w in [(0.05, 60, 0.6), (0.3, 100, 0.65), (0.0, 140, 0.5), (0.45, 180, 0.5), (0.1, 222, 0.7)]]
+    # raindrops and snowflakes, scattered (the first N are shown, N by how heavy it is)
+    + [raindrop(*spot(sz, sz), sz, n) for n, sz in enumerate(rnd.choice([11, 13, 13, 15, 17]) for _ in range(44))]
+    + [flake(*spot(sz, sz), sz, n) for n, sz in enumerate(rnd.choice([8, 10, 10, 12, 14, 16]) for _ in range(40))],
+    internal_title="Atmosphere")
+
 BANNER_H = SKY_H + INSET * 2
 banner = overlap([
     rect(W, BANNER_H, C(SURFACE), 22, anchor="TOP"),
     rect(W, BANNER_H / 2, C(SURFACE), anchor="BOTTOM"),
-    rect(SKY_W, SKY_H, SKY, 16, anchor="TOP", position_padding_top=float(INSET)),
+    rect(SKY_W, SKY_H, SKY, 16, anchor="TOP", position_padding_top=float(INSET),
+         fx_gradient="VERTICAL", fx_gradient_width=100.0, fx_gradient_offset=0.0,
+         internal_toggles={"paint_color": 10, "fx_gradient_color": 10},
+         internal_formulas={"paint_color": SKY, "fx_gradient_color": SKY_LOW}),
+    pad(atmosphere, "TOP", t=INSET),
     pad(clock, "TOPLEFT", l=INSET + SP, t=INSET + SP),
     pad(now_block, "TOPRIGHT", r=INSET + SP, t=INSET + SP),
     pad(hours, "TOPLEFT", l=INSET + SP, t=INSET + SKY_H - 96),
