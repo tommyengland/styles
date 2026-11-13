@@ -1,0 +1,1083 @@
+##KUSTOMCLIP##
+{
+  "clip_version": 1,
+  "clip_cut": [],
+  "clip_modules": [
+    {
+      "internal_type": "StackLayerModule",
+      "config_stacking": "VERTICAL_LEFT",
+      "config_margin": 14.0,
+      "viewgroup_items": [
+        {
+          "internal_type": "OverlapLayerModule",
+          "internal_title": "Hero card",
+          "viewgroup_items": [
+            {
+              "internal_type": "ShapeModule",
+              "shape_type": "RECT",
+              "shape_width": 480.0,
+              "shape_height": 190.0,
+              "shape_corners": 28.0,
+              "paint_color": "#CC1E1F24",
+              "position_anchor": "TOPLEFT"
+            },
+            {
+              "internal_type": "OverlapLayerModule",
+              "position_anchor": "CENTER",
+              "viewgroup_items": [
+                {
+                  "internal_type": "ShapeModule",
+                  "shape_type": "RECT",
+                  "shape_width": 436.0,
+                  "shape_height": 160.0,
+                  "shape_corners": 0.0,
+                  "paint_color": "#00000000",
+                  "position_anchor": "CENTER"
+                },
+                {
+                  "internal_type": "StackLayerModule",
+                  "config_stacking": "VERTICAL_LEFT",
+                  "config_margin": 0.0,
+                  "viewgroup_items": [
+                    {
+                      "internal_type": "TextModule",
+                      "text_expression": "$df(HH:mm)$",
+                      "text_size": 64.0,
+                      "internal_toggles": {
+                        "paint_color": 100,
+                        "text_family": 100
+                      },
+                      "internal_globals": {
+                        "paint_color": "txt",
+                        "text_family": "lead txt"
+                      }
+                    },
+                    {
+                      "internal_type": "TextModule",
+                      "text_expression": "$df(EEEE)$",
+                      "text_size": 26.0,
+                      "internal_toggles": {
+                        "paint_color": 100
+                      },
+                      "internal_globals": {
+                        "paint_color": "txt"
+                      },
+                      "text_family": "kfile://org.kustom.provider/fonts/Roboto-Light.ttf"
+                    },
+                    {
+                      "internal_type": "TextModule",
+                      "text_expression": "$tc(up, df(dd MMMM))$",
+                      "text_size": 16.0,
+                      "internal_toggles": {
+                        "paint_color": 100,
+                        "text_family": 100
+                      },
+                      "internal_globals": {
+                        "paint_color": "headers",
+                        "text_family": "lead txt"
+                      },
+                      "position_padding_top": 4.0
+                    }
+                  ],
+                  "internal_events": [
+                    {
+                      "type": "SINGLE_TAP",
+                      "action": "LAUNCH_APP",
+                      "intent": "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;component=com.oneplus.deskclock/com.oplus.alarmclock.AlarmClock;S.org.kustom.intent.label=Clock;end"
+                    }
+                  ],
+                  "internal_title": "Clock",
+                  "position_anchor": "CENTERLEFT"
+                },
+                {
+                  "internal_type": "StackLayerModule",
+                  "config_stacking": "VERTICAL_RIGHT",
+                  "config_margin": 2.0,
+                  "viewgroup_items": [
+                    {
+                      "internal_type": "StackLayerModule",
+                      "config_stacking": "HORIZONTAL_CENTER",
+                      "config_margin": 6.0,
+                      "viewgroup_items": [
+                        {
+                          "internal_type": "FontIconModule",
+                          "icon_set": "iconify://wi?name=Weather%20Icons",
+                          "internal_toggles": {
+                            "icon_icon": 10,
+                            "paint_color": 10
+                          },
+                          "internal_formulas": {
+                            "icon_icon": "$if(df(S) >= ai(sunrise)*60 - 1800 & df(S) < ai(sunrise)*60, \"sunrise\",\n  df(S) >= ai(sunset)*60 & df(S) < ai(sunset)*60 + 1800, \"sunset\",\n  if(wi(icon) = CLEAR, if(ai(isday), \"day-sunny\", \"night-clear\"),\n    wi(icon) = PCLOUDY, if(ai(isday), \"day-cloudy\", \"night-alt-cloudy\"),\n    wi(icon) = MCLOUDY, if(ai(isday), \"day-cloudy\", \"night-alt-cloudy\"),\n    wi(icon) = CLOUDY, \"cloudy\",\n    wi(icon) = RAIN, if(ai(isday), \"day-rain\", \"night-alt-rain\"),\n    wi(icon) = SHOWER, if(ai(isday), \"day-showers\", \"night-alt-showers\"),\n    wi(icon) = TSTORM, if(ai(isday), \"day-thunderstorm\", \"night-alt-thunderstorm\"),\n    wi(icon) = SNOW, if(ai(isday), \"day-snow\", \"night-alt-snow\"),\n    wi(icon) = SLEET, if(ai(isday), \"day-sleet\", \"night-alt-sleet\"),\n    wi(icon) = FOG, if(ai(isday), \"day-fog\", \"night-fog\"),\n    wi(icon) = WINDY, if(ai(isday), \"day-windy\", \"night-alt-cloudy-windy\"),\n    wi(icon) = TORNADO, \"tornado\",\n    wi(icon) = HAIL, \"hail\",\n    \"na\"))$",
+                            "paint_color": "$if(df(S) >= ai(sunrise)*60 - 1800 & df(S) < ai(sunrise)*60,\n  ce(#FFFF8C00, #FFFFEB3B, (df(S) - (ai(sunrise)*60 - 1800)) / 18),\n  df(S) >= ai(sunset)*60 & df(S) < ai(sunset)*60 + 1800,\n  ce(#FFFFEB3B, #FFFF3D00, (df(S) - ai(sunset)*60) / 18),\n  #FFFFB74D)$"
+                          },
+                          "icon_size": 90.0
+                        },
+                        {
+                          "internal_type": "TextModule",
+                          "text_expression": "$wi(temp)$°",
+                          "text_size": 52.0,
+                          "internal_toggles": {
+                            "text_family": 100,
+                            "paint_color": 10
+                          },
+                          "internal_globals": {
+                            "text_family": "lead txt"
+                          },
+                          "internal_formulas": {
+                            "paint_color": "$if(wi(temp) >= 30, #FFFF7043, wi(temp) >= 20, #FFFFCA28, wi(temp) >= 10, #FF9CCC65, wi(temp) >= 0, #FF81D4FA, #FF5C9DFF)$"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "internal_type": "TextModule",
+                      "text_expression": "$wi(cond)$",
+                      "text_size": 16.0,
+                      "internal_toggles": {
+                        "paint_color": 100
+                      },
+                      "internal_globals": {
+                        "paint_color": "txt"
+                      },
+                      "text_size_type": "FIXED_WIDTH",
+                      "text_width": 190.0,
+                      "text_align": "RIGHT",
+                      "text_lines": 1
+                    },
+                    {
+                      "internal_type": "TextModule",
+                      "text_expression": "$li(loc)$",
+                      "text_size": 14.0,
+                      "internal_toggles": {
+                        "paint_color": 100
+                      },
+                      "internal_globals": {
+                        "paint_color": "headers"
+                      },
+                      "text_size_type": "FIXED_WIDTH",
+                      "text_width": 190.0,
+                      "text_align": "RIGHT",
+                      "text_lines": 1
+                    }
+                  ],
+                  "internal_events": [
+                    {
+                      "type": "SINGLE_TAP",
+                      "action": "LAUNCH_APP",
+                      "intent": "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;component=com.weawow/.GoldenIcon;S.org.kustom.intent.label=Weawow;end"
+                    }
+                  ],
+                  "internal_title": "Weather now",
+                  "position_anchor": "CENTERRIGHT"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "internal_type": "StackLayerModule",
+          "config_stacking": "HORIZONTAL_TOP",
+          "config_margin": 10.0,
+          "viewgroup_items": [
+            {
+              "internal_type": "OverlapLayerModule",
+              "viewgroup_items": [
+                {
+                  "internal_type": "ShapeModule",
+                  "shape_type": "RECT",
+                  "shape_width": 153.33333333333334,
+                  "shape_height": 48.0,
+                  "shape_corners": 24.0,
+                  "paint_color": "#CC2A2C33",
+                  "position_anchor": "TOPLEFT"
+                },
+                {
+                  "internal_type": "StackLayerModule",
+                  "config_stacking": "HORIZONTAL_CENTER",
+                  "config_margin": 8.0,
+                  "viewgroup_items": [
+                    {
+                      "internal_type": "FontIconModule",
+                      "icon_set": "iconify://wi?name=Weather%20Icons",
+                      "internal_toggles": {
+                        "icon_icon": 10
+                      },
+                      "internal_formulas": {
+                        "icon_icon": "$\"strong-wind\"$"
+                      },
+                      "icon_size": 22.0,
+                      "paint_color": "#FF80CBC4"
+                    },
+                    {
+                      "internal_type": "TextModule",
+                      "text_expression": "$if(wi(wspeed) > 0, mu(round, wi(wspeed)) + \" \" + wi(speedu) + \" \" + if(wi(wdir)<22.5,\"N\",wi(wdir)<67.5,\"NE\",wi(wdir)<112.5,\"E\",wi(wdir)<157.5,\"SE\",wi(wdir)<202.5,\"S\",wi(wdir)<247.5,\"SW\",wi(wdir)<292.5,\"W\",wi(wdir)<337.5,\"NW\",\"N\"), \"Calm\")$",
+                      "text_size": 15.0,
+                      "internal_toggles": {
+                        "paint_color": 100
+                      },
+                      "internal_globals": {
+                        "paint_color": "txt"
+                      }
+                    }
+                  ],
+                  "position_anchor": "CENTER",
+                  "position_padding_left": 0.0,
+                  "position_padding_top": 0.0,
+                  "position_padding_right": 0.0,
+                  "position_padding_bottom": 0.0
+                }
+              ]
+            },
+            {
+              "internal_type": "OverlapLayerModule",
+              "viewgroup_items": [
+                {
+                  "internal_type": "ShapeModule",
+                  "shape_type": "RECT",
+                  "shape_width": 153.33333333333334,
+                  "shape_height": 48.0,
+                  "shape_corners": 24.0,
+                  "paint_color": "#CC2A2C33",
+                  "position_anchor": "TOPLEFT"
+                },
+                {
+                  "internal_type": "StackLayerModule",
+                  "config_stacking": "HORIZONTAL_CENTER",
+                  "config_margin": 8.0,
+                  "viewgroup_items": [
+                    {
+                      "internal_type": "FontIconModule",
+                      "icon_set": "iconify://wi?name=Weather%20Icons",
+                      "internal_toggles": {
+                        "icon_icon": 10
+                      },
+                      "internal_formulas": {
+                        "icon_icon": "$\"humidity\"$"
+                      },
+                      "icon_size": 22.0,
+                      "paint_color": "#FF64B5F6"
+                    },
+                    {
+                      "internal_type": "TextModule",
+                      "text_expression": "$wi(hum)$%",
+                      "text_size": 15.0,
+                      "internal_toggles": {
+                        "paint_color": 100
+                      },
+                      "internal_globals": {
+                        "paint_color": "txt"
+                      }
+                    }
+                  ],
+                  "position_anchor": "CENTER",
+                  "position_padding_left": 0.0,
+                  "position_padding_top": 0.0,
+                  "position_padding_right": 0.0,
+                  "position_padding_bottom": 0.0
+                }
+              ]
+            },
+            {
+              "internal_type": "OverlapLayerModule",
+              "viewgroup_items": [
+                {
+                  "internal_type": "ShapeModule",
+                  "shape_type": "RECT",
+                  "shape_width": 153.33333333333334,
+                  "shape_height": 48.0,
+                  "shape_corners": 24.0,
+                  "paint_color": "#CC2A2C33",
+                  "position_anchor": "TOPLEFT"
+                },
+                {
+                  "internal_type": "StackLayerModule",
+                  "config_stacking": "HORIZONTAL_CENTER",
+                  "config_margin": 8.0,
+                  "viewgroup_items": [
+                    {
+                      "internal_type": "FontIconModule",
+                      "icon_set": "iconify://wi?name=Weather%20Icons",
+                      "internal_toggles": {
+                        "icon_icon": 10
+                      },
+                      "internal_formulas": {
+                        "icon_icon": "$if(df(S) < ai(sunrise)*60 | df(S) >= ai(sunset)*60, \"sunrise\", \"sunset\")$"
+                      },
+                      "icon_size": 22.0,
+                      "paint_color": "#FFFFB74D"
+                    },
+                    {
+                      "internal_type": "TextModule",
+                      "text_expression": "$if(df(S) < ai(sunrise)*60 | df(S) >= ai(sunset)*60, df(HH:mm, ai(sunrise)), df(HH:mm, ai(sunset)))$",
+                      "text_size": 15.0,
+                      "internal_toggles": {
+                        "paint_color": 100
+                      },
+                      "internal_globals": {
+                        "paint_color": "txt"
+                      }
+                    }
+                  ],
+                  "position_anchor": "CENTER",
+                  "position_padding_left": 0.0,
+                  "position_padding_top": 0.0,
+                  "position_padding_right": 0.0,
+                  "position_padding_bottom": 0.0
+                }
+              ]
+            }
+          ],
+          "internal_title": "Chips",
+          "internal_events": [
+            {
+              "type": "SINGLE_TAP",
+              "action": "LAUNCH_APP",
+              "intent": "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;component=net.oneplus.weather/com.oplus.weather.main.view.WeatherMainActivity;S.org.kustom.intent.label=Weather;end"
+            }
+          ]
+        },
+        {
+          "internal_type": "StackLayerModule",
+          "config_stacking": "VERTICAL_LEFT",
+          "config_margin": 8.0,
+          "viewgroup_items": [
+            {
+              "internal_type": "TextModule",
+              "text_expression": "Forecast",
+              "text_size": 16.0,
+              "internal_toggles": {
+                "paint_color": 100,
+                "text_family": 100
+              },
+              "internal_globals": {
+                "paint_color": "headers",
+                "text_family": "bold"
+              },
+              "position_padding_left": 6.0
+            },
+            {
+              "internal_type": "StackLayerModule",
+              "config_stacking": "HORIZONTAL_TOP",
+              "config_margin": 10.0,
+              "viewgroup_items": [
+                {
+                  "internal_type": "OverlapLayerModule",
+                  "viewgroup_items": [
+                    {
+                      "internal_type": "ShapeModule",
+                      "shape_type": "RECT",
+                      "shape_width": 112.5,
+                      "shape_height": 118.0,
+                      "shape_corners": 24.0,
+                      "paint_color": "#CC2A2C33",
+                      "position_anchor": "TOPLEFT"
+                    },
+                    {
+                      "internal_type": "StackLayerModule",
+                      "config_stacking": "VERTICAL_CENTER",
+                      "config_margin": 6.0,
+                      "viewgroup_items": [
+                        {
+                          "internal_type": "TextModule",
+                          "text_expression": "$df(HH:00, a1h)$",
+                          "text_size": 14.0,
+                          "internal_toggles": {
+                            "paint_color": 100
+                          },
+                          "internal_globals": {
+                            "paint_color": "headers"
+                          }
+                        },
+                        {
+                          "internal_type": "FontIconModule",
+                          "icon_set": "iconify://wi?name=Weather%20Icons",
+                          "internal_toggles": {
+                            "icon_icon": 10
+                          },
+                          "internal_formulas": {
+                            "icon_icon": "$if(wf(icon, 0, 1) = CLEAR, if(ai(isday), \"day-sunny\", \"night-clear\"),\n  wf(icon, 0, 1) = PCLOUDY, if(ai(isday), \"day-cloudy\", \"night-alt-cloudy\"),\n  wf(icon, 0, 1) = MCLOUDY, if(ai(isday), \"day-cloudy\", \"night-alt-cloudy\"),\n  wf(icon, 0, 1) = CLOUDY, \"cloudy\",\n  wf(icon, 0, 1) = RAIN, if(ai(isday), \"day-rain\", \"night-alt-rain\"),\n  wf(icon, 0, 1) = SHOWER, if(ai(isday), \"day-showers\", \"night-alt-showers\"),\n  wf(icon, 0, 1) = TSTORM, if(ai(isday), \"day-thunderstorm\", \"night-alt-thunderstorm\"),\n  wf(icon, 0, 1) = SNOW, if(ai(isday), \"day-snow\", \"night-alt-snow\"),\n  wf(icon, 0, 1) = SLEET, if(ai(isday), \"day-sleet\", \"night-alt-sleet\"),\n  wf(icon, 0, 1) = FOG, if(ai(isday), \"day-fog\", \"night-fog\"),\n  wf(icon, 0, 1) = WINDY, if(ai(isday), \"day-windy\", \"night-alt-cloudy-windy\"),\n  wf(icon, 0, 1) = TORNADO, \"tornado\",\n  wf(icon, 0, 1) = HAIL, \"hail\",\n  \"na\")$"
+                          },
+                          "icon_size": 34.0,
+                          "paint_color": "#FFFFB74D"
+                        },
+                        {
+                          "internal_type": "TextModule",
+                          "text_expression": "$wf(temp, 0, 1)$°",
+                          "text_size": 20.0,
+                          "internal_toggles": {
+                            "text_family": 100,
+                            "paint_color": 10
+                          },
+                          "internal_globals": {
+                            "text_family": "lead txt"
+                          },
+                          "internal_formulas": {
+                            "paint_color": "$if(wf(temp, 0, 1) >= 30, #FFFF7043, wf(temp, 0, 1) >= 20, #FFFFCA28, wf(temp, 0, 1) >= 10, #FF9CCC65, wf(temp, 0, 1) >= 0, #FF81D4FA, #FF5C9DFF)$"
+                          }
+                        }
+                      ],
+                      "position_anchor": "CENTER",
+                      "position_padding_left": 0.0,
+                      "position_padding_top": 0.0,
+                      "position_padding_right": 0.0,
+                      "position_padding_bottom": 0.0
+                    }
+                  ]
+                },
+                {
+                  "internal_type": "OverlapLayerModule",
+                  "viewgroup_items": [
+                    {
+                      "internal_type": "ShapeModule",
+                      "shape_type": "RECT",
+                      "shape_width": 112.5,
+                      "shape_height": 118.0,
+                      "shape_corners": 24.0,
+                      "paint_color": "#CC2A2C33",
+                      "position_anchor": "TOPLEFT"
+                    },
+                    {
+                      "internal_type": "StackLayerModule",
+                      "config_stacking": "VERTICAL_CENTER",
+                      "config_margin": 6.0,
+                      "viewgroup_items": [
+                        {
+                          "internal_type": "TextModule",
+                          "text_expression": "$df(HH:00, a2h)$",
+                          "text_size": 14.0,
+                          "internal_toggles": {
+                            "paint_color": 100
+                          },
+                          "internal_globals": {
+                            "paint_color": "headers"
+                          }
+                        },
+                        {
+                          "internal_type": "FontIconModule",
+                          "icon_set": "iconify://wi?name=Weather%20Icons",
+                          "internal_toggles": {
+                            "icon_icon": 10
+                          },
+                          "internal_formulas": {
+                            "icon_icon": "$if(wf(icon, 0, 2) = CLEAR, if(ai(isday), \"day-sunny\", \"night-clear\"),\n  wf(icon, 0, 2) = PCLOUDY, if(ai(isday), \"day-cloudy\", \"night-alt-cloudy\"),\n  wf(icon, 0, 2) = MCLOUDY, if(ai(isday), \"day-cloudy\", \"night-alt-cloudy\"),\n  wf(icon, 0, 2) = CLOUDY, \"cloudy\",\n  wf(icon, 0, 2) = RAIN, if(ai(isday), \"day-rain\", \"night-alt-rain\"),\n  wf(icon, 0, 2) = SHOWER, if(ai(isday), \"day-showers\", \"night-alt-showers\"),\n  wf(icon, 0, 2) = TSTORM, if(ai(isday), \"day-thunderstorm\", \"night-alt-thunderstorm\"),\n  wf(icon, 0, 2) = SNOW, if(ai(isday), \"day-snow\", \"night-alt-snow\"),\n  wf(icon, 0, 2) = SLEET, if(ai(isday), \"day-sleet\", \"night-alt-sleet\"),\n  wf(icon, 0, 2) = FOG, if(ai(isday), \"day-fog\", \"night-fog\"),\n  wf(icon, 0, 2) = WINDY, if(ai(isday), \"day-windy\", \"night-alt-cloudy-windy\"),\n  wf(icon, 0, 2) = TORNADO, \"tornado\",\n  wf(icon, 0, 2) = HAIL, \"hail\",\n  \"na\")$"
+                          },
+                          "icon_size": 34.0,
+                          "paint_color": "#FFFFB74D"
+                        },
+                        {
+                          "internal_type": "TextModule",
+                          "text_expression": "$wf(temp, 0, 2)$°",
+                          "text_size": 20.0,
+                          "internal_toggles": {
+                            "text_family": 100,
+                            "paint_color": 10
+                          },
+                          "internal_globals": {
+                            "text_family": "lead txt"
+                          },
+                          "internal_formulas": {
+                            "paint_color": "$if(wf(temp, 0, 2) >= 30, #FFFF7043, wf(temp, 0, 2) >= 20, #FFFFCA28, wf(temp, 0, 2) >= 10, #FF9CCC65, wf(temp, 0, 2) >= 0, #FF81D4FA, #FF5C9DFF)$"
+                          }
+                        }
+                      ],
+                      "position_anchor": "CENTER",
+                      "position_padding_left": 0.0,
+                      "position_padding_top": 0.0,
+                      "position_padding_right": 0.0,
+                      "position_padding_bottom": 0.0
+                    }
+                  ]
+                },
+                {
+                  "internal_type": "OverlapLayerModule",
+                  "viewgroup_items": [
+                    {
+                      "internal_type": "ShapeModule",
+                      "shape_type": "RECT",
+                      "shape_width": 112.5,
+                      "shape_height": 118.0,
+                      "shape_corners": 24.0,
+                      "paint_color": "#CC2A2C33",
+                      "position_anchor": "TOPLEFT"
+                    },
+                    {
+                      "internal_type": "StackLayerModule",
+                      "config_stacking": "VERTICAL_CENTER",
+                      "config_margin": 6.0,
+                      "viewgroup_items": [
+                        {
+                          "internal_type": "TextModule",
+                          "text_expression": "$df(HH:00, a3h)$",
+                          "text_size": 14.0,
+                          "internal_toggles": {
+                            "paint_color": 100
+                          },
+                          "internal_globals": {
+                            "paint_color": "headers"
+                          }
+                        },
+                        {
+                          "internal_type": "FontIconModule",
+                          "icon_set": "iconify://wi?name=Weather%20Icons",
+                          "internal_toggles": {
+                            "icon_icon": 10
+                          },
+                          "internal_formulas": {
+                            "icon_icon": "$if(wf(icon, 0, 3) = CLEAR, if(ai(isday), \"day-sunny\", \"night-clear\"),\n  wf(icon, 0, 3) = PCLOUDY, if(ai(isday), \"day-cloudy\", \"night-alt-cloudy\"),\n  wf(icon, 0, 3) = MCLOUDY, if(ai(isday), \"day-cloudy\", \"night-alt-cloudy\"),\n  wf(icon, 0, 3) = CLOUDY, \"cloudy\",\n  wf(icon, 0, 3) = RAIN, if(ai(isday), \"day-rain\", \"night-alt-rain\"),\n  wf(icon, 0, 3) = SHOWER, if(ai(isday), \"day-showers\", \"night-alt-showers\"),\n  wf(icon, 0, 3) = TSTORM, if(ai(isday), \"day-thunderstorm\", \"night-alt-thunderstorm\"),\n  wf(icon, 0, 3) = SNOW, if(ai(isday), \"day-snow\", \"night-alt-snow\"),\n  wf(icon, 0, 3) = SLEET, if(ai(isday), \"day-sleet\", \"night-alt-sleet\"),\n  wf(icon, 0, 3) = FOG, if(ai(isday), \"day-fog\", \"night-fog\"),\n  wf(icon, 0, 3) = WINDY, if(ai(isday), \"day-windy\", \"night-alt-cloudy-windy\"),\n  wf(icon, 0, 3) = TORNADO, \"tornado\",\n  wf(icon, 0, 3) = HAIL, \"hail\",\n  \"na\")$"
+                          },
+                          "icon_size": 34.0,
+                          "paint_color": "#FFFFB74D"
+                        },
+                        {
+                          "internal_type": "TextModule",
+                          "text_expression": "$wf(temp, 0, 3)$°",
+                          "text_size": 20.0,
+                          "internal_toggles": {
+                            "text_family": 100,
+                            "paint_color": 10
+                          },
+                          "internal_globals": {
+                            "text_family": "lead txt"
+                          },
+                          "internal_formulas": {
+                            "paint_color": "$if(wf(temp, 0, 3) >= 30, #FFFF7043, wf(temp, 0, 3) >= 20, #FFFFCA28, wf(temp, 0, 3) >= 10, #FF9CCC65, wf(temp, 0, 3) >= 0, #FF81D4FA, #FF5C9DFF)$"
+                          }
+                        }
+                      ],
+                      "position_anchor": "CENTER",
+                      "position_padding_left": 0.0,
+                      "position_padding_top": 0.0,
+                      "position_padding_right": 0.0,
+                      "position_padding_bottom": 0.0
+                    }
+                  ]
+                },
+                {
+                  "internal_type": "OverlapLayerModule",
+                  "viewgroup_items": [
+                    {
+                      "internal_type": "ShapeModule",
+                      "shape_type": "RECT",
+                      "shape_width": 112.5,
+                      "shape_height": 118.0,
+                      "shape_corners": 24.0,
+                      "paint_color": "#CC2A2C33",
+                      "position_anchor": "TOPLEFT"
+                    },
+                    {
+                      "internal_type": "StackLayerModule",
+                      "config_stacking": "VERTICAL_CENTER",
+                      "config_margin": 6.0,
+                      "viewgroup_items": [
+                        {
+                          "internal_type": "TextModule",
+                          "text_expression": "$df(HH:00, a4h)$",
+                          "text_size": 14.0,
+                          "internal_toggles": {
+                            "paint_color": 100
+                          },
+                          "internal_globals": {
+                            "paint_color": "headers"
+                          }
+                        },
+                        {
+                          "internal_type": "FontIconModule",
+                          "icon_set": "iconify://wi?name=Weather%20Icons",
+                          "internal_toggles": {
+                            "icon_icon": 10
+                          },
+                          "internal_formulas": {
+                            "icon_icon": "$if(wf(icon, 0, 4) = CLEAR, if(ai(isday), \"day-sunny\", \"night-clear\"),\n  wf(icon, 0, 4) = PCLOUDY, if(ai(isday), \"day-cloudy\", \"night-alt-cloudy\"),\n  wf(icon, 0, 4) = MCLOUDY, if(ai(isday), \"day-cloudy\", \"night-alt-cloudy\"),\n  wf(icon, 0, 4) = CLOUDY, \"cloudy\",\n  wf(icon, 0, 4) = RAIN, if(ai(isday), \"day-rain\", \"night-alt-rain\"),\n  wf(icon, 0, 4) = SHOWER, if(ai(isday), \"day-showers\", \"night-alt-showers\"),\n  wf(icon, 0, 4) = TSTORM, if(ai(isday), \"day-thunderstorm\", \"night-alt-thunderstorm\"),\n  wf(icon, 0, 4) = SNOW, if(ai(isday), \"day-snow\", \"night-alt-snow\"),\n  wf(icon, 0, 4) = SLEET, if(ai(isday), \"day-sleet\", \"night-alt-sleet\"),\n  wf(icon, 0, 4) = FOG, if(ai(isday), \"day-fog\", \"night-fog\"),\n  wf(icon, 0, 4) = WINDY, if(ai(isday), \"day-windy\", \"night-alt-cloudy-windy\"),\n  wf(icon, 0, 4) = TORNADO, \"tornado\",\n  wf(icon, 0, 4) = HAIL, \"hail\",\n  \"na\")$"
+                          },
+                          "icon_size": 34.0,
+                          "paint_color": "#FFFFB74D"
+                        },
+                        {
+                          "internal_type": "TextModule",
+                          "text_expression": "$wf(temp, 0, 4)$°",
+                          "text_size": 20.0,
+                          "internal_toggles": {
+                            "text_family": 100,
+                            "paint_color": 10
+                          },
+                          "internal_globals": {
+                            "text_family": "lead txt"
+                          },
+                          "internal_formulas": {
+                            "paint_color": "$if(wf(temp, 0, 4) >= 30, #FFFF7043, wf(temp, 0, 4) >= 20, #FFFFCA28, wf(temp, 0, 4) >= 10, #FF9CCC65, wf(temp, 0, 4) >= 0, #FF81D4FA, #FF5C9DFF)$"
+                          }
+                        }
+                      ],
+                      "position_anchor": "CENTER",
+                      "position_padding_left": 0.0,
+                      "position_padding_top": 0.0,
+                      "position_padding_right": 0.0,
+                      "position_padding_bottom": 0.0
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "internal_title": "Forecast",
+          "internal_events": [
+            {
+              "type": "SINGLE_TAP",
+              "action": "LAUNCH_APP",
+              "intent": "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;component=net.oneplus.weather/com.oplus.weather.main.view.WeatherMainActivity;S.org.kustom.intent.label=Weather;end"
+            }
+          ]
+        },
+        {
+          "internal_type": "StackLayerModule",
+          "config_stacking": "VERTICAL_LEFT",
+          "config_margin": 8.0,
+          "viewgroup_items": [
+            {
+              "internal_type": "TextModule",
+              "text_expression": "Upcoming",
+              "text_size": 16.0,
+              "internal_toggles": {
+                "paint_color": 100,
+                "text_family": 100
+              },
+              "internal_globals": {
+                "paint_color": "headers",
+                "text_family": "bold"
+              },
+              "position_padding_left": 6.0
+            },
+            {
+              "internal_type": "OverlapLayerModule",
+              "viewgroup_items": [
+                {
+                  "internal_type": "ShapeModule",
+                  "shape_type": "RECT",
+                  "shape_width": 480.0,
+                  "shape_height": 66.0,
+                  "shape_corners": 24.0,
+                  "paint_color": "#CC2A2C33",
+                  "position_anchor": "TOPLEFT"
+                },
+                {
+                  "internal_type": "TextModule",
+                  "text_expression": "No upcoming events",
+                  "text_size": 16.0,
+                  "internal_toggles": {
+                    "paint_color": 100
+                  },
+                  "internal_globals": {
+                    "paint_color": "txt"
+                  },
+                  "position_anchor": "CENTER",
+                  "position_padding_left": 0.0,
+                  "position_padding_top": 0.0,
+                  "position_padding_right": 0.0,
+                  "position_padding_bottom": 0.0
+                }
+              ],
+              "internal_toggles": {
+                "config_visible": 10
+              },
+              "internal_formulas": {
+                "config_visible": "$if(ci(title, 0) = \"\", ALWAYS, REMOVE)$"
+              }
+            },
+            {
+              "internal_type": "OverlapLayerModule",
+              "internal_title": "Event 0",
+              "internal_toggles": {
+                "config_visible": 10
+              },
+              "internal_formulas": {
+                "config_visible": "$if(ci(title, 0) = \"\", REMOVE, ALWAYS)$"
+              },
+              "viewgroup_items": [
+                {
+                  "internal_type": "ShapeModule",
+                  "shape_type": "RECT",
+                  "shape_width": 480.0,
+                  "shape_height": 66.0,
+                  "shape_corners": 20.0,
+                  "paint_color": "#CC2A2C33",
+                  "position_anchor": "TOPLEFT"
+                },
+                {
+                  "internal_type": "ShapeModule",
+                  "shape_type": "RECT",
+                  "shape_width": 6.0,
+                  "shape_height": 38.0,
+                  "shape_corners": 3.0,
+                  "paint_color": "#FFFFFFFF",
+                  "position_anchor": "CENTERLEFT",
+                  "position_offset_x": 16.0,
+                  "internal_toggles": {
+                    "paint_color": 10
+                  },
+                  "internal_formulas": {
+                    "paint_color": "$ci(ccolor, 0)$"
+                  }
+                },
+                {
+                  "internal_type": "StackLayerModule",
+                  "config_stacking": "VERTICAL_LEFT",
+                  "config_margin": 2.0,
+                  "viewgroup_items": [
+                    {
+                      "internal_type": "TextModule",
+                      "text_expression": "$ci(title, 0)$",
+                      "text_size": 17.0,
+                      "internal_toggles": {
+                        "paint_color": 100,
+                        "text_family": 100
+                      },
+                      "internal_globals": {
+                        "paint_color": "txt",
+                        "text_family": "bold"
+                      },
+                      "text_size_type": "FIXED_WIDTH",
+                      "text_width": 420.0,
+                      "text_lines": 1
+                    },
+                    {
+                      "internal_type": "TextModule",
+                      "text_expression": "$if(df(Dyyyy, ci(start, 0)) = df(Dyyyy), \"Today\", df(Dyyyy, ci(start, 0)) = df(Dyyyy, a1d), \"Tomorrow\", df(\"EEE dd MMM\", ci(start, 0))) + \" · \" + if(ci(allday, 0) = 1, \"All day\", df(HH:mm, ci(start, 0)) + \" – \" + df(HH:mm, ci(end, 0)))$",
+                      "text_size": 13.0,
+                      "internal_toggles": {
+                        "paint_color": 100
+                      },
+                      "internal_globals": {
+                        "paint_color": "headers"
+                      },
+                      "text_size_type": "FIXED_WIDTH",
+                      "text_width": 420.0,
+                      "text_lines": 1
+                    }
+                  ],
+                  "position_anchor": "CENTERLEFT",
+                  "position_offset_x": 36.0
+                }
+              ]
+            },
+            {
+              "internal_type": "OverlapLayerModule",
+              "internal_title": "Event 1",
+              "internal_toggles": {
+                "config_visible": 10
+              },
+              "internal_formulas": {
+                "config_visible": "$if(ci(title, 1) = \"\", REMOVE, ALWAYS)$"
+              },
+              "viewgroup_items": [
+                {
+                  "internal_type": "ShapeModule",
+                  "shape_type": "RECT",
+                  "shape_width": 480.0,
+                  "shape_height": 66.0,
+                  "shape_corners": 20.0,
+                  "paint_color": "#CC2A2C33",
+                  "position_anchor": "TOPLEFT"
+                },
+                {
+                  "internal_type": "ShapeModule",
+                  "shape_type": "RECT",
+                  "shape_width": 6.0,
+                  "shape_height": 38.0,
+                  "shape_corners": 3.0,
+                  "paint_color": "#FFFFFFFF",
+                  "position_anchor": "CENTERLEFT",
+                  "position_offset_x": 16.0,
+                  "internal_toggles": {
+                    "paint_color": 10
+                  },
+                  "internal_formulas": {
+                    "paint_color": "$ci(ccolor, 1)$"
+                  }
+                },
+                {
+                  "internal_type": "StackLayerModule",
+                  "config_stacking": "VERTICAL_LEFT",
+                  "config_margin": 2.0,
+                  "viewgroup_items": [
+                    {
+                      "internal_type": "TextModule",
+                      "text_expression": "$ci(title, 1)$",
+                      "text_size": 17.0,
+                      "internal_toggles": {
+                        "paint_color": 100,
+                        "text_family": 100
+                      },
+                      "internal_globals": {
+                        "paint_color": "txt",
+                        "text_family": "bold"
+                      },
+                      "text_size_type": "FIXED_WIDTH",
+                      "text_width": 420.0,
+                      "text_lines": 1
+                    },
+                    {
+                      "internal_type": "TextModule",
+                      "text_expression": "$if(df(Dyyyy, ci(start, 1)) = df(Dyyyy), \"Today\", df(Dyyyy, ci(start, 1)) = df(Dyyyy, a1d), \"Tomorrow\", df(\"EEE dd MMM\", ci(start, 1))) + \" · \" + if(ci(allday, 1) = 1, \"All day\", df(HH:mm, ci(start, 1)) + \" – \" + df(HH:mm, ci(end, 1)))$",
+                      "text_size": 13.0,
+                      "internal_toggles": {
+                        "paint_color": 100
+                      },
+                      "internal_globals": {
+                        "paint_color": "headers"
+                      },
+                      "text_size_type": "FIXED_WIDTH",
+                      "text_width": 420.0,
+                      "text_lines": 1
+                    }
+                  ],
+                  "position_anchor": "CENTERLEFT",
+                  "position_offset_x": 36.0
+                }
+              ]
+            },
+            {
+              "internal_type": "OverlapLayerModule",
+              "internal_title": "Event 2",
+              "internal_toggles": {
+                "config_visible": 10
+              },
+              "internal_formulas": {
+                "config_visible": "$if(ci(title, 2) = \"\", REMOVE, ALWAYS)$"
+              },
+              "viewgroup_items": [
+                {
+                  "internal_type": "ShapeModule",
+                  "shape_type": "RECT",
+                  "shape_width": 480.0,
+                  "shape_height": 66.0,
+                  "shape_corners": 20.0,
+                  "paint_color": "#CC2A2C33",
+                  "position_anchor": "TOPLEFT"
+                },
+                {
+                  "internal_type": "ShapeModule",
+                  "shape_type": "RECT",
+                  "shape_width": 6.0,
+                  "shape_height": 38.0,
+                  "shape_corners": 3.0,
+                  "paint_color": "#FFFFFFFF",
+                  "position_anchor": "CENTERLEFT",
+                  "position_offset_x": 16.0,
+                  "internal_toggles": {
+                    "paint_color": 10
+                  },
+                  "internal_formulas": {
+                    "paint_color": "$ci(ccolor, 2)$"
+                  }
+                },
+                {
+                  "internal_type": "StackLayerModule",
+                  "config_stacking": "VERTICAL_LEFT",
+                  "config_margin": 2.0,
+                  "viewgroup_items": [
+                    {
+                      "internal_type": "TextModule",
+                      "text_expression": "$ci(title, 2)$",
+                      "text_size": 17.0,
+                      "internal_toggles": {
+                        "paint_color": 100,
+                        "text_family": 100
+                      },
+                      "internal_globals": {
+                        "paint_color": "txt",
+                        "text_family": "bold"
+                      },
+                      "text_size_type": "FIXED_WIDTH",
+                      "text_width": 420.0,
+                      "text_lines": 1
+                    },
+                    {
+                      "internal_type": "TextModule",
+                      "text_expression": "$if(df(Dyyyy, ci(start, 2)) = df(Dyyyy), \"Today\", df(Dyyyy, ci(start, 2)) = df(Dyyyy, a1d), \"Tomorrow\", df(\"EEE dd MMM\", ci(start, 2))) + \" · \" + if(ci(allday, 2) = 1, \"All day\", df(HH:mm, ci(start, 2)) + \" – \" + df(HH:mm, ci(end, 2)))$",
+                      "text_size": 13.0,
+                      "internal_toggles": {
+                        "paint_color": 100
+                      },
+                      "internal_globals": {
+                        "paint_color": "headers"
+                      },
+                      "text_size_type": "FIXED_WIDTH",
+                      "text_width": 420.0,
+                      "text_lines": 1
+                    }
+                  ],
+                  "position_anchor": "CENTERLEFT",
+                  "position_offset_x": 36.0
+                }
+              ]
+            },
+            {
+              "internal_type": "OverlapLayerModule",
+              "internal_title": "Event 3",
+              "internal_toggles": {
+                "config_visible": 10
+              },
+              "internal_formulas": {
+                "config_visible": "$if(ci(title, 3) = \"\", REMOVE, ALWAYS)$"
+              },
+              "viewgroup_items": [
+                {
+                  "internal_type": "ShapeModule",
+                  "shape_type": "RECT",
+                  "shape_width": 480.0,
+                  "shape_height": 66.0,
+                  "shape_corners": 20.0,
+                  "paint_color": "#CC2A2C33",
+                  "position_anchor": "TOPLEFT"
+                },
+                {
+                  "internal_type": "ShapeModule",
+                  "shape_type": "RECT",
+                  "shape_width": 6.0,
+                  "shape_height": 38.0,
+                  "shape_corners": 3.0,
+                  "paint_color": "#FFFFFFFF",
+                  "position_anchor": "CENTERLEFT",
+                  "position_offset_x": 16.0,
+                  "internal_toggles": {
+                    "paint_color": 10
+                  },
+                  "internal_formulas": {
+                    "paint_color": "$ci(ccolor, 3)$"
+                  }
+                },
+                {
+                  "internal_type": "StackLayerModule",
+                  "config_stacking": "VERTICAL_LEFT",
+                  "config_margin": 2.0,
+                  "viewgroup_items": [
+                    {
+                      "internal_type": "TextModule",
+                      "text_expression": "$ci(title, 3)$",
+                      "text_size": 17.0,
+                      "internal_toggles": {
+                        "paint_color": 100,
+                        "text_family": 100
+                      },
+                      "internal_globals": {
+                        "paint_color": "txt",
+                        "text_family": "bold"
+                      },
+                      "text_size_type": "FIXED_WIDTH",
+                      "text_width": 420.0,
+                      "text_lines": 1
+                    },
+                    {
+                      "internal_type": "TextModule",
+                      "text_expression": "$if(df(Dyyyy, ci(start, 3)) = df(Dyyyy), \"Today\", df(Dyyyy, ci(start, 3)) = df(Dyyyy, a1d), \"Tomorrow\", df(\"EEE dd MMM\", ci(start, 3))) + \" · \" + if(ci(allday, 3) = 1, \"All day\", df(HH:mm, ci(start, 3)) + \" – \" + df(HH:mm, ci(end, 3)))$",
+                      "text_size": 13.0,
+                      "internal_toggles": {
+                        "paint_color": 100
+                      },
+                      "internal_globals": {
+                        "paint_color": "headers"
+                      },
+                      "text_size_type": "FIXED_WIDTH",
+                      "text_width": 420.0,
+                      "text_lines": 1
+                    }
+                  ],
+                  "position_anchor": "CENTERLEFT",
+                  "position_offset_x": 36.0
+                }
+              ]
+            },
+            {
+              "internal_type": "OverlapLayerModule",
+              "internal_title": "Event 4",
+              "internal_toggles": {
+                "config_visible": 10
+              },
+              "internal_formulas": {
+                "config_visible": "$if(ci(title, 4) = \"\", REMOVE, ALWAYS)$"
+              },
+              "viewgroup_items": [
+                {
+                  "internal_type": "ShapeModule",
+                  "shape_type": "RECT",
+                  "shape_width": 480.0,
+                  "shape_height": 66.0,
+                  "shape_corners": 20.0,
+                  "paint_color": "#CC2A2C33",
+                  "position_anchor": "TOPLEFT"
+                },
+                {
+                  "internal_type": "ShapeModule",
+                  "shape_type": "RECT",
+                  "shape_width": 6.0,
+                  "shape_height": 38.0,
+                  "shape_corners": 3.0,
+                  "paint_color": "#FFFFFFFF",
+                  "position_anchor": "CENTERLEFT",
+                  "position_offset_x": 16.0,
+                  "internal_toggles": {
+                    "paint_color": 10
+                  },
+                  "internal_formulas": {
+                    "paint_color": "$ci(ccolor, 4)$"
+                  }
+                },
+                {
+                  "internal_type": "StackLayerModule",
+                  "config_stacking": "VERTICAL_LEFT",
+                  "config_margin": 2.0,
+                  "viewgroup_items": [
+                    {
+                      "internal_type": "TextModule",
+                      "text_expression": "$ci(title, 4)$",
+                      "text_size": 17.0,
+                      "internal_toggles": {
+                        "paint_color": 100,
+                        "text_family": 100
+                      },
+                      "internal_globals": {
+                        "paint_color": "txt",
+                        "text_family": "bold"
+                      },
+                      "text_size_type": "FIXED_WIDTH",
+                      "text_width": 420.0,
+                      "text_lines": 1
+                    },
+                    {
+                      "internal_type": "TextModule",
+                      "text_expression": "$if(df(Dyyyy, ci(start, 4)) = df(Dyyyy), \"Today\", df(Dyyyy, ci(start, 4)) = df(Dyyyy, a1d), \"Tomorrow\", df(\"EEE dd MMM\", ci(start, 4))) + \" · \" + if(ci(allday, 4) = 1, \"All day\", df(HH:mm, ci(start, 4)) + \" – \" + df(HH:mm, ci(end, 4)))$",
+                      "text_size": 13.0,
+                      "internal_toggles": {
+                        "paint_color": 100
+                      },
+                      "internal_globals": {
+                        "paint_color": "headers"
+                      },
+                      "text_size_type": "FIXED_WIDTH",
+                      "text_width": 420.0,
+                      "text_lines": 1
+                    }
+                  ],
+                  "position_anchor": "CENTERLEFT",
+                  "position_offset_x": 36.0
+                }
+              ]
+            }
+          ],
+          "internal_title": "Calendar",
+          "internal_events": [
+            {
+              "type": "SINGLE_TAP",
+              "action": "LAUNCH_APP",
+              "intent": "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;component=biz.codespark.xcalendarapp/crc64c040fa4b38b83970.MainActivity;S.org.kustom.intent.label=OneCalendar;end"
+            }
+          ]
+        }
+      ],
+      "position_anchor": "TOPLEFT",
+      "position_offset_x": 10.0,
+      "position_offset_y": 10.0,
+      "internal_title": "HA Dashboard"
+    }
+  ]
+}
