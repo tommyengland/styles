@@ -291,5 +291,5 @@ root = stack([banner, whats_on, bottom], "VERTICAL_LEFT", 0, internal_title="Mis
 
 with open(OUT, "w") as f:
     f.write("##KUSTOMCLIP##\n" + json.dumps({"clip_version": 1, "clip_cut": [], "clip_modules": [root]},
-                                           indent=2, ensure_ascii=False))
+separators=(",", ":"), ensure_ascii=False))
 print("wrote", OUT)
