@@ -67,10 +67,10 @@ def sky(top):
 SKY, SKY_LOW = sky(True), sky(False)
 
 # Taps open whatever the phone uses by default, so they work whichever apps are installed:
-# the default clock (alarms) and calendar apps, and the kiosk's own Weather page.
+# the default clock (alarms) and calendar apps, and Google's weather forecast.
 APP_CLOCK = "intent:#Intent;action=android.intent.action.SHOW_ALARMS;end"
 APP_CAL = "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.APP_CALENDAR;end"
-APP_WEATHER = "https://barrellfamily.duckdns.org/local/weather.html#Intent;action=android.intent.action.VIEW;end"
+APP_WEATHER = "https://www.google.com/search?q=weather#Intent;action=android.intent.action.VIEW;end"
 LIGHT = "kfile://org.kustom.provider/fonts/Roboto-Light.ttf"
 
 
@@ -172,9 +172,6 @@ clock = stack([
                   internal_toggles={"shape_width": 10},
                   internal_formulas={"shape_width": "$max(4, df(s) / 60 * 190)$"})],
             internal_title="Minute bar"),
-    # Tomorrow's bins from Home Assistant (Tasker sets the glance_bins variable; see homeassistant/README)
-    visible(txt('$"Bins tomorrow: [b]" + br(tasker, glance_bins) + "[/b]"$', 12, ON_SKY, position_padding_top=4.0),
-            'br(tasker, glance_bins) != "" & tc(cut, br(tasker, glance_bins), 1) != "%"'),
 ], "VERTICAL_LEFT", 2, internal_title="Clock")
 tap(clock, APP_CLOCK)
 
@@ -370,9 +367,23 @@ def row(j):
             f'  df(HH:mm, {S(i)}) + " – " + df(HH:mm, {E(i)}))'
             f' + if({nxt}, "  [c=" + {CI(LAKE)} + "][b]" + tf({S(i)}) + "[/b][/c]", "")$')
     has_loc = f'ci(loc, {i}) != ""'
-    # "Leave by 14:20 · 25 min drive", from Home Assistant (Tasker: glance_leave_title / glance_leave)
-    leave = (f'$if(ci(title, {i}) = br(tasker, glance_leave_title) & br(tasker, glance_leave) != "",'
-             f' "[c=" + {CI(LAKE)} + "][b]" + br(tasker, glance_leave) + "[/b][/c]", "")$')
+    # "Leave by 13:52 · 27 min drive", worked out by KWGT itself for today's events with a location,
+    # from 4 hours before: the place is looked up on Photon (OpenStreetMap), the drive from where the
+    # phone is now on OSRM's public router (no traffic, so +15%), plus 10 minutes to park.
+    geo = lambda k: (f'wg("https://photon.komoot.io/api/?limit=1&q=" + tc(url, ci(loc, {i})), json, '
+                     f'".features[0].geometry.coordinates[{k}]")')
+    secs = (f'wg("https://router.project-osrm.org/route/v1/driving/" + li(lon) + "," + li(lat) + ";" + '
+            f'{geo(0)} + "," + {geo(1)} + "?overview=false", json, ".routes[0].duration")')
+    drive = f"mu(ceil, {secs} * 1.15 / 60)"
+    start_m = f"(df(H, {S(i)})*60 + df(m, {S(i)}))"
+    leave_m = f"({start_m} - {drive} - 10)"
+    due = (f'({has_loc} & {DAY(S(i))} = {TODAY_N} & df(yyyyMMddHHmm, {S(i)}) > {NOW_N} & ci(allday, {i}) = 0'
+           f' & {start_m} - {MIN_NOW} <= 240)')
+    hhmm = (f'(if({leave_m} < 600, "0", "") + mu(floor, {leave_m} / 60) + ":" + '
+            f'if({leave_m} - mu(floor, {leave_m} / 60) * 60 < 10, "0", "") + ({leave_m} - mu(floor, {leave_m} / 60) * 60))')
+    shows_leave = f"({due} & {secs} != \"\")"
+    leave = (f'$if({MIN_NOW} >= {leave_m}, "[c={AMBER}][b]Leave now[/b][/c] · " + {drive} + " min drive",'
+             f' "[c=" + {CI(LAKE)} + "][b]Leave by " + {hhmm} + "[/b][/c] · " + {drive} + " min drive")$')
     text_w = {"internal_toggles": {"text_width": 10},
               "internal_formulas": {"text_width": f"$if({has_loc}, {IW - 104}, {IW - 48})$"}}
 
@@ -393,19 +404,18 @@ def row(j):
         rect(4, 34, f"$ci(ccolor, {i})$", 2, anchor="CENTERLEFT", position_padding_left=14.0),
         pad(stack([t(f"[b]$ci(title, {i})$[/b]", 16, C(TEXT)),
                    t(when, 13, C(MUTED)),
-                   visible(t(leave, 13, C(LAKE)),
-                           f"ci(title, {i}) = br(tasker, glance_leave_title) & br(tasker, glance_leave) != \"\"")],
+                   visible(t(leave, 13, C(LAKE)), shows_leave)],
                   "VERTICAL_LEFT", 3), "CENTERLEFT", l=30),
         go,
     ])
     # a row with a "leave by" line is taller
     chip["viewgroup_items"][0].update(internal_toggles={**chip["viewgroup_items"][0]["internal_toggles"], "shape_height": 10})
     chip["viewgroup_items"][0].setdefault("internal_formulas", {})["shape_height"] = \
-        f'$if(ci(title, {i}) = br(tasker, glance_leave_title) & br(tasker, glance_leave) != "", 82, 64)$'
+        f'$if({shows_leave}, 82, 64)$'
     strip_m = strip(72, chip, title=f"Row {j + 1}")
     strip_m["viewgroup_items"][0].update(internal_toggles={**strip_m["viewgroup_items"][0]["internal_toggles"], "shape_height": 10})
     strip_m["viewgroup_items"][0].setdefault("internal_formulas", {})["shape_height"] = \
-        f'$if(ci(title, {i}) = br(tasker, glance_leave_title) & br(tasker, glance_leave) != "", 90, 72)$'
+        f'$if({shows_leave}, 90, 72)$'
     return tap(visible(strip_m, HAS(i)), APP_CAL)
 
 
@@ -438,18 +448,7 @@ bottom = overlap([rect(W, 40, C(SURFACE), 22, anchor="TOP"), rect(W, 20, C(SURFA
 
 whats_on = stack([header] + [row(j) for j in range(PAGE)] + [no_events], "VERTICAL_LEFT", 0,
                  internal_title="What's on")
-# ================= Home Assistant alerts (only when something needs attention) =================
-# glance_alerts is set by Tasker from sensor.kwgt_glance: already coloured (ember for an open door
-# or the alarm going off, amber for arming, weather warnings and low batteries), "" when all's well.
-APP_HA = "https://barrellfamily.duckdns.org/#Intent;action=android.intent.action.VIEW;end"
-alerts = tap(visible(strip(64,
-    rect(IW, 52, C(FILL), 12),
-    rect(4, 26, AMBER, 2, anchor="CENTERLEFT", position_padding_left=float(INSET + 14)),
-    pad(txt("$br(tasker, glance_alerts)$", 14, C(TEXT), text_size_type="FIXED_WIDTH",
-            text_width=float(IW - 48), text_lines=2), "CENTERLEFT", l=INSET + 30),
-    title="Alerts"), 'br(tasker, glance_alerts) != "" & tc(cut, br(tasker, glance_alerts), 1) != "%"'), APP_HA)
-
-items = [banner, alerts, whats_on, bottom]
+items = [banner, whats_on, bottom]
 
 # Clip: a komponent, so the calendar globals come with it when pasted
 komponent = {"internal_type": "KomponentModule", "internal_title": "Misty Forest", "globals_list": GLOBALS,
