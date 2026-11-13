@@ -19,6 +19,17 @@ every 15 minutes, then passes the values to KWGT.
 
 ## 2. Tasker
 
+### Quick way: import the project
+
+1. Download `../tasker/KWGT_Glance.prj.xml` to the phone.
+2. In Tasker, long-press the **home icon / project tabs** along the bottom → **Import Project** → pick the file.
+   It adds a **KWGT Glance** project with the task and both profiles.
+3. Open the **KWGT Glance** task → **HTTP Request** → **Headers**. Replace `PASTE_YOUR_HOME_ASSISTANT_TOKEN_HERE` with your token, keeping `Authorization:Bearer ` in front of it.
+4. Tap ▶ to test. Tasker may ask you to allow KWGT as a plugin; say yes.
+
+### By hand (if the import doesn't work)
+
+
 **Task** "Glance" (Tasks tab → +):
 
 1. **Net → HTTP Request**
@@ -40,7 +51,7 @@ Tap ▶ to test it. The widget should update within a few seconds.
 
 **Profiles** (Profiles tab → +). Link both to the Glance task:
 
-- **Event → Display → Display On**, so the widget is fresh whenever you look at your phone.
+- **Event → Display → Display Unlocked**, so the widget is fresh whenever you unlock your phone.
 - **Time** → From `00:00` To `23:59`, Repeat **Every 15 minutes**, so it also updates while the phone sits unlocked.
 
 ## Notes
