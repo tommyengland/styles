@@ -165,6 +165,9 @@ clock = stack([
                   internal_toggles={"shape_width": 10},
                   internal_formulas={"shape_width": "$max(4, df(s) / 60 * 190)$"})],
             internal_title="Minute bar"),
+    # Tomorrow's bins from Home Assistant (Tasker sets the glance_bins variable; see homeassistant/README)
+    visible(txt('$"Bins tomorrow: [b]" + br(tasker, glance_bins) + "[/b]"$', 12, ON_SKY, position_padding_top=4.0),
+            'br(tasker, glance_bins) != "" & tc(cut, br(tasker, glance_bins), 1) != "%"'),
 ], "VERTICAL_LEFT", 2, internal_title="Clock")
 tap(clock, APP_CLOCK)
 
@@ -289,7 +292,18 @@ bottom = overlap([rect(W, 40, C(SURFACE), 22, anchor="TOP"), rect(W, 20, C(SURFA
 
 whats_on = stack([header] + [row(j) for j in range(PAGE)] + [no_events], "VERTICAL_LEFT", 0,
                  internal_title="What's on")
-items = [banner, whats_on, bottom]
+# ================= Home Assistant alerts (only when something needs attention) =================
+# glance_alerts is set by Tasker from sensor.kwgt_glance: already coloured (ember for an open door
+# or the alarm going off, amber for arming, weather warnings and low batteries), "" when all's well.
+APP_HA = "https://barrellfamily.duckdns.org/#Intent;action=android.intent.action.VIEW;end"
+alerts = tap(visible(strip(64,
+    rect(IW, 52, C(FILL), 12),
+    rect(4, 26, AMBER, 2, anchor="CENTERLEFT", position_padding_left=float(INSET + 14)),
+    pad(txt("$br(tasker, glance_alerts)$", 14, C(TEXT), text_size_type="FIXED_WIDTH",
+            text_width=float(IW - 48), text_lines=2), "CENTERLEFT", l=INSET + 30),
+    title="Alerts"), 'br(tasker, glance_alerts) != "" & tc(cut, br(tasker, glance_alerts), 1) != "%"'), APP_HA)
+
+items = [banner, alerts, whats_on, bottom]
 
 # Clip: a komponent, so the calendar globals come with it when pasted
 komponent = {"internal_type": "KomponentModule", "internal_title": "Misty Forest", "globals_list": GLOBALS,

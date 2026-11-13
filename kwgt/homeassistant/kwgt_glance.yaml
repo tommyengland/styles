@@ -1,0 +1,83 @@
+# /config/packages/kwgt_glance.yaml
+# What the phone widget (KWGT, Misty Forest) shows from Home Assistant. Tasker reads this one
+# sensor over the REST API and hands two values to KWGT:
+#   bins    tomorrow's collections, from sensor.dashboard_agenda's events ("Recycling + Garden"), or ""
+#   alerts  anything needing attention, already coloured for KWGT ([c=#...]...[/c]), or "" when all's well:
+#           ember   a door open, the alarm going off
+#           amber   the alarm arming, a Met Office warning (red ones in red), batteries at 20% or below
+# The state is the number of urgent things (doors, alarm, warnings), so an automation can watch it if Tasker is later made push-based.
+
+template:
+  - sensor:
+      - name: "KWGT Glance"
+        unique_id: kwgt_glance
+        icon: mdi-cellphone-text
+        # the state: how many doors open / alarm / warning things there are (batteries not counted)
+        state: >-
+          {%- set n = namespace(c=0) -%}
+          {%- for e in ['binary_sensor.front_door', 'binary_sensor.back_door', 'binary_sensor.french_doors', 'binary_sensor.garage_door'] -%}
+            {%- if states(e) in ['on', 'open', 'opening'] -%}{%- set n.c = n.c + 1 -%}{%- endif -%}
+          {%- endfor -%}
+          {%- if states('alarm_control_panel.home_alarm') in ['triggered', 'arming', 'pending'] -%}{%- set n.c = n.c + 1 -%}{%- endif -%}
+          {%- if states('sensor.met_office_warnings') not in ['none', 'unknown', 'unavailable', ''] -%}{%- set n.c = n.c + 1 -%}{%- endif -%}
+          {{ n.c }}
+        attributes:
+          bins: >-
+            {%- set day = (now() + timedelta(days=1)).strftime('%Y-%m-%d') -%}
+            {%- set ns = namespace(b=[]) -%}
+            {%- for e in state_attr('sensor.dashboard_agenda', 'events') or [] -%}
+              {%- set low = (e.s | default('') | string | lower) -%}
+              {%- if e.i == day and low is search('recycling|garden collection|rubbish collection') -%}
+                {%- set ns.b = ns.b + ['Recycling' if 'recycling' in low else ('Garden' if 'garden' in low else 'Rubbish')] -%}
+              {%- endif -%}
+            {%- endfor -%}
+            {{ ns.b | unique | join(' + ') }}
+
+          alerts: >-
+            {%- set ember, amber, red = '#F0795A', '#B7791F', '#E05050' -%}
+            {%- set ns = namespace(a=[]) -%}
+
+            {#- doors (same four as the Entry panel) -#}
+            {%- set doors = {'binary_sensor.front_door': 'Front door', 'binary_sensor.back_door': 'Back door',
+                             'binary_sensor.french_doors': 'Living room doors', 'binary_sensor.garage_door': 'Garage door'} -%}
+            {%- for e, name in doors.items() if states(e) in ['on', 'open', 'opening'] -%}
+              {%- set since = as_local(states[e].last_changed).strftime('%H:%M') -%}
+              {%- set ns.a = ns.a + ['[c=' ~ ember ~ '][b]' ~ name ~ ' open[/b][/c] since ' ~ since] -%}
+            {%- endfor -%}
+
+            {#- alarm -#}
+            {%- set al = states('alarm_control_panel.home_alarm') -%}
+            {%- if al == 'triggered' -%}
+              {%- set ns.a = ['[c=' ~ ember ~ '][b]Alarm going off[/b][/c]'] + ns.a -%}
+            {%- elif al in ['arming', 'pending'] -%}
+              {%- set ns.a = ns.a + ['[c=' ~ amber ~ '][b]Alarm ' ~ al ~ '[/b][/c]'] -%}
+            {%- endif -%}
+
+            {#- Met Office warnings (sensor.met_office_warnings: colour|kind|from|to;...) -#}
+            {%- set w = states('sensor.met_office_warnings') -%}
+            {%- if w not in ['none', 'unknown', 'unavailable', ''] -%}
+              {%- for x in w.split(';') -%}
+                {%- set p = x.split('|') -%}
+                {%- set col = red if p[0] == 'Red' else amber -%}
+                {%- set ns.a = ns.a + ['[c=' ~ col ~ '][b]' ~ p[0] ~ ' warning[/b][/c] ' ~ (p[1] | default('') | lower)] -%}
+              {%- endfor -%}
+            {%- endif -%}
+
+            {#- batteries at 20% or below (doors, doorbell, motion sensors, soil sensors) -#}
+            {%- set bats = {'sensor.front_door_battery': 'Front door', 'sensor.back_door_battery': 'Back door',
+                            'sensor.french_doors_battery': 'Living doors', 'sensor.garage_door_battery': 'Garage door',
+                            'sensor.front_door_battery_2': 'Doorbell', 'sensor.keypad_battery': 'Hall',
+                            'sensor.kitchen_motion_detector_battery': 'Kitchen motion',
+                            'sensor.living_room_motion_detector_battery': 'Living motion',
+                            'sensor.main_bedroom_motion_detector_battery': 'Master motion',
+                            'sensor.soil_moisture_battery': 'Soil 1', 'sensor.soil_zone_2_battery': 'Soil 2',
+                            'sensor.soil_zone_3_battery': 'Soil 3'} -%}
+            {%- set low = namespace(n=[]) -%}
+            {%- for e, name in bats.items() if is_number(states(e)) and states(e) | float <= 20 -%}
+              {%- set low.n = low.n + [name ~ ' ' ~ (states(e) | float | round(0) | int) ~ '%'] -%}
+            {%- endfor -%}
+            {%- if low.n -%}
+              {%- set ns.a = ns.a + ['[c=' ~ amber ~ '][b]Low battery[/b][/c] ' ~ low.n | join(', ')] -%}
+            {%- endif -%}
+
+            {{ ns.a | join('  ·  ') }}
