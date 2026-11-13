@@ -18,7 +18,7 @@ OUT = os.path.dirname(os.path.abspath(__file__)) + "/misty-forest.kustomclip"
 W = 480          # widget width (KWGT units)
 INSET = 16       # gap between the surface edge and the content
 IW = W - 2 * INSET
-N_EVENTS = 6     # calendar events looked at
+
 
 # ---------- sun: minutes since midnight ----------
 MIN_NOW = "(df(H)*60 + df(m))"
@@ -217,32 +217,38 @@ banner = overlap([
     pad(hours, "TOPLEFT", l=INSET + SP, t=INSET + SKY_H - 96),
 ], internal_title="Banner")
 
-# ================= 2. What's on (lake) =================
+# ================= 2. What's on (lake): one list, paged with ▲ ▼ =================
+# A home-screen widget can't scroll, so the list pages instead: ▲ / ▼ in the header step
+# through the events PAGE at a time (KWGT "switch global" tap actions on the calpage global).
+PAGE = 5          # events per page
+MAX_EVENTS = 20   # events counted (4 pages)
+
+GLOBALS = {
+    "calpage": {"index": 0, "type": "NUMBER", "title": "Calendar page", "value": 0},
+    "calcount": {"index": 1, "type": "NUMBER", "title": "Calendar events", "value": 0, "toggles": 10,
+                 "global_formula": "$" + " + ".join(f'if(ci(title, {k}) != "", 1, 0)' for k in range(MAX_EVENTS)) + "$"},
+    # first event shown: the page, held inside the list if events have dropped off since
+    "calidx": {"index": 2, "type": "NUMBER", "title": "Calendar first event", "value": 0, "toggles": 10,
+               "global_formula": f"$mu(min, gv(calpage), mu(floor, mu(max, 0, gv(calcount) - 1) / {PAGE})) * {PAGE}$"},
+}
+
 S = lambda i: f"ci(start, {i})"
 E = lambda i: f"ci(end, {i})"
 DAY = lambda d: f"df(yyyyMMdd, {d})"
 TODAY_N, NOW_N = "df(yyyyMMdd)", "df(yyyyMMddHHmm)"
 HAS = lambda i: f'ci(title, {i}) != ""'
-IS_TODAY = lambda i: f"({HAS(i)} & {DAY(S(i))} <= {TODAY_N})"          # today, or started earlier
 IS_ON = lambda i: f"({HAS(i)} & df(yyyyMMddHHmm, {S(i)}) <= {NOW_N})"   # on now
-IS_LATER = lambda i: f"({HAS(i)} & {DAY(S(i))} > {TODAY_N})"
 
 
-def is_next(i):  # the first of today's events that hasn't started
-    prev = f" & {IS_ON(i - 1)}" if i else ""
-    return f"({IS_TODAY(i)} & df(yyyyMMddHHmm, {S(i)}) > {NOW_N}{prev})"
-
-
-header = strip(44, pad(stack([rect(4, 16, C(LAKE), 2), txt("[b]What's on[/b]", 16, C(LAKE))],
-                             "HORIZONTAL_CENTER", 8), "CENTERLEFT", l=INSET + 4),
-               title="What's on")
-
-
-def today_row(i):
-    when = (f'$if(ci(allday, {i}) = 1, "All day",\n'
+def row(j):
+    i = f"(gv(calidx) + {j})"
+    # the next thing today: not started yet, and everything before it has
+    nxt = f"({HAS(i)} & {DAY(S(i))} = {TODAY_N} & df(yyyyMMddHHmm, {S(i)}) > {NOW_N} & ({i} = 0 | {IS_ON(f'({i} - 1)')}))"
+    when = (f'$if({DAY(S(i))} <= {TODAY_N}, "Today", {DAY(S(i))} = df(yyyyMMdd, a1d), "Tomorrow", df("EEE d MMM", {S(i)}))'
+            f' + " · " + if(ci(allday, {i}) = 1, "All day",\n'
             f'  {IS_ON(i)}, "Now · until " + if({DAY(E(i))} = {TODAY_N}, df(HH:mm, {E(i)}), df("EEE HH:mm", {E(i)})),\n'
             f'  df(HH:mm, {S(i)}) + " – " + df(HH:mm, {E(i)}))'
-            f' + if({is_next(i)}, "  [c=" + {CI(LAKE)} + "][b]" + tf({S(i)}) + "[/b][/c]", "")$')
+            f' + if({nxt}, "  [c=" + {CI(LAKE)} + "][b]" + tf({S(i)}) + "[/b][/c]", "")$')
     chip = overlap([
         rect(IW, 64, f"$if({IS_ON(i)}, if({NIGHT}, {FILL_ON[1]}, {FILL_ON[0]}), if({NIGHT}, {FILL[1]}, {FILL[0]}))$", 12),
         rect(4, 34, f"$ci(ccolor, {i})$", 2, anchor="CENTERLEFT", position_padding_left=14.0),
@@ -251,62 +257,60 @@ def today_row(i):
                    txt(when, 13, C(MUTED), text_size_type="FIXED_WIDTH", text_width=float(IW - 48), text_lines=1)],
                   "VERTICAL_LEFT", 3), "CENTERLEFT", l=30),
     ])
-    return visible(strip(72, chip, title=f"Today {i}"), IS_TODAY(i))
+    return tap(visible(strip(72, chip, title=f"Row {j + 1}"), HAS(i)), APP_CAL)
 
 
-# Hidden when something is on today, and when there are no events at all
-nothing_today = strip(36, pad(txt("Nothing else today", 14, C(MUTED)), "CENTERLEFT", l=INSET + 4),
-                      title="Nothing today")
-nothing_today["internal_toggles"] = {"config_visible": 10}
-nothing_today["internal_formulas"] = {"config_visible": f'$if({IS_TODAY(0)} | ci(title, 0) = "", REMOVE, ALWAYS)$'}
-
-ANY_LATER = " | ".join(IS_LATER(i) for i in range(N_EVENTS))
-coming_head = visible(strip(44,
-                            rect(IW, 1, C(DIVIDER), anchor="TOP", position_padding_top=8.0),
-                            pad(txt("Coming up", 13, C(MUTED)), "BOTTOMLEFT", l=INSET + 4, b=6),
-                            title="Coming up"), f"({ANY_LATER})")
+def page_button(label, can, to):
+    b = overlap([rect(44, 32, C(FILL), 10),
+                 txt(label, 13, f"$if({can}, if({NIGHT}, {LAKE[1]}, {LAKE[0]}), if({NIGHT}, {DIVIDER[1]}, {DIVIDER[0]}))$",
+                     position_anchor="CENTER")], internal_title=f"Page {label}")
+    b["internal_events"] = [{"type": "SINGLE_TAP", "action": "SWITCH_GLOBAL", "switch": "calpage", "switch_text": to}]
+    return b
 
 
-def later_row(i):
-    line = (f'$"[b]" + if({DAY(S(i))} = df(yyyyMMdd, a1d), "Tomorrow", df("EEE d", {S(i)})) + "[/b]   "'
-            f' + if(ci(allday, {i}) = 1, "", df(HH:mm, {S(i)}) + "   ") + ci(title, {i})$')
-    row = pad(stack([rect(8, 8, f"$ci(ccolor, {i})$", 4),
-                     txt(line, 14, C(TEXT), text_size_type="FIXED_WIDTH", text_width=float(IW - 30), text_lines=1)],
-                    "HORIZONTAL_CENTER", 10), "CENTERLEFT", l=INSET + 4)
-    return visible(strip(30, row, title=f"Later {i}"), IS_LATER(i))
+UP_OK, DOWN_OK = "gv(calidx) > 0", f"gv(calidx) + {PAGE} < gv(calcount)"
+pager = visible(stack([
+    txt(f'$(gv(calidx) + 1) + "–" + mu(min, gv(calidx) + {PAGE}, gv(calcount)) + " of " + gv(calcount)$', 12, C(MUTED)),
+    page_button("▲", UP_OK, f"$mu(max, 0, gv(calidx) / {PAGE} - 1)$"),
+    page_button("▼", DOWN_OK, f"$if({DOWN_OK}, gv(calidx) / {PAGE} + 1, gv(calidx) / {PAGE})$"),
+], "HORIZONTAL_CENTER", 8, internal_title="Pager"), f"gv(calcount) > {PAGE}")
 
+header = strip(48,
+               tap(pad(stack([rect(4, 16, C(LAKE), 2), txt("[b]What's on[/b]", 16, C(LAKE))], "HORIZONTAL_CENTER", 8),
+                       "CENTERLEFT", l=INSET + 4), APP_CAL),
+               pad(pager, "CENTERRIGHT", r=INSET),
+               title="What's on")
 
-no_events = strip(36, pad(txt("No upcoming events", 14, C(MUTED)), "CENTERLEFT", l=INSET + 4), title="No events")
-no_events = visible(no_events, f'ci(title, 0) = ""')
+no_events = visible(strip(36, pad(txt("No upcoming events", 14, C(MUTED)), "CENTERLEFT", l=INSET + 4),
+                          title="No events"), 'ci(title, 0) = ""')
 
 bottom = overlap([rect(W, 40, C(SURFACE), 22, anchor="TOP"), rect(W, 20, C(SURFACE), anchor="TOP")],
                  internal_title="Bottom edge")
 
-whats_on = tap(stack([header] + [today_row(i) for i in range(N_EVENTS)] + [nothing_today, coming_head]
-                     + [later_row(i) for i in range(N_EVENTS)] + [no_events], "VERTICAL_LEFT", 0,
-                     internal_title="What's on"), APP_CAL)
+whats_on = stack([header] + [row(j) for j in range(PAGE)] + [no_events], "VERTICAL_LEFT", 0,
+                 internal_title="What's on")
+items = [banner, whats_on, bottom]
 
-root = stack([banner, whats_on, bottom], "VERTICAL_LEFT", 0, internal_title="Misty Forest",
-             position_anchor="TOPLEFT", position_offset_x=10.0, position_offset_y=10.0)
-
+# Clip: a komponent, so the calendar globals come with it when pasted
+komponent = {"internal_type": "KomponentModule", "internal_title": "Misty Forest", "globals_list": GLOBALS,
+             "position_anchor": "TOPLEFT", "position_offset_x": 10.0, "position_offset_y": 10.0,
+             "viewgroup_items": [stack(items, "VERTICAL_LEFT", 0)]}
 with open(OUT, "w") as f:
-    f.write("##KUSTOMCLIP##\n" + json.dumps({"clip_version": 1, "clip_cut": [], "clip_modules": [root]},
-                                           separators=(",", ":"), ensure_ascii=False))
+    f.write("##KUSTOMCLIP##\n" + json.dumps({"clip_version": 1, "clip_cut": [], "clip_modules": [komponent]},
+                                           separators=(",", ":"), ensure_ascii=False) + "\n##KUSTOMCLIP##\n")
 print("wrote", OUT)
 
-# The same widget as a whole preset (.kwgt = a zip holding preset.json), to load from KWGT's
-# menu instead of pasting. Layout as in presets exported by KWGT itself.
-import copy, zipfile
-widget = copy.deepcopy(root)
-widget.update(position_offset_x=0.0, position_offset_y=0.0)
+# The same widget as a whole preset (.kwgt = a zip holding preset.json), loaded from KWGT's
+# menu instead of pasted. Layout as in presets exported by KWGT itself.
+import zipfile
 preset = {
     "preset_info": {"version": 13, "title": "Misty Forest",
                     "description": "Clock, weather and calendar in the style of the Home Kiosk (Misty Forest v2)",
                     "author": "", "email": "", "archive": None, "features": "WEATHER FORECAST CALENDAR",
                     "width": W, "height": 760, "xscreens": 0, "yscreens": 0,
                     "release": 377435216, "locked": False, "pflags": 0},
-    "preset_root": {"internal_type": "RootLayerModule", "config_scale_value": 100.0,
-                    "viewgroup_items": [widget]},
+    "preset_root": {"internal_type": "RootLayerModule", "config_scale_value": 100.0, "globals_list": GLOBALS,
+                    "viewgroup_items": [stack(items, "VERTICAL_LEFT", 0, internal_title="Misty Forest")]},
 }
 KWGT = os.path.join(os.path.dirname(OUT), "misty-forest.kwgt")
 with zipfile.ZipFile(KWGT, "w", zipfile.ZIP_DEFLATED) as z:
