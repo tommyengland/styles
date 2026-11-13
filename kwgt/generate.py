@@ -363,13 +363,13 @@ def journey_globals(j, base):
     osrm = (f'wg("https://router.project-osrm.org/route/v1/driving/" + li(lon) + "," + li(lat) + ";" + '
             f'{geo(0)} + "," + {geo(1)} + "?overview=false", json, ".routes[0].duration")')
     f = lambda n, typ, title, formula: (f"{n}{j}", {"index": base + n_order.index(n), "type": typ,
-                                                    "title": f"Card {j + 1} {title}", "value": "", "toggles": 10,
+                                                    "title": f"Card {j + 1} {title}", "value": 0 if typ == "NUMBER" else "", "toggles": 10,
                                                     "global_formula": formula})
     n_order = ["trip", "mins", "route", "drive", "leave", "show"]
     return dict([
         # today, timed, not started, has a place, starts within 4 hours
         f("trip", "NUMBER", "journey due", f'$if(ci(loc, {i}) != "" & ci(allday, {i}) = 0 & df(yyyyMMdd, {S(i)}) = df(yyyyMMdd)'
-                                          f' & df(yyyyMMddHHmm, {S(i)}) > df(yyyyMMddHHmm)'
+                                          f' & {start_m} > {MIN_NOW}'
                                           f' & {start_m} - {MIN_NOW} <= 240, 1, 0)$'),
         f("mins", "NUMBER", "minutes to start", f"${start_m} - {MIN_NOW}$"),
         # the only place the web lookups live; asked for only when the journey is due
@@ -386,13 +386,18 @@ E = lambda i: f"ci(end, {i})"
 DAY = lambda d: f"df(yyyyMMdd, {d})"
 TODAY_N, NOW_N = "df(yyyyMMdd)", "df(yyyyMMddHHmm)"
 HAS = lambda i: f'ci(title, {i}) != ""'
-IS_ON = lambda i: f"({HAS(i)} & df(yyyyMMddHHmm, {S(i)}) <= {NOW_N})"   # on now
+START_M = lambda i: f"(df(H, {S(i)})*60 + df(m, {S(i)}))"
+# started: an earlier day, or today at/before now (days and minutes compared separately; 12-digit
+# date numbers like 202611131605 are too big for KWGT's sums and gave wrong answers)
+STARTED = lambda i: f"({DAY(S(i))} < {TODAY_N} | ({DAY(S(i))} = {TODAY_N} & {START_M(i)} <= {MIN_NOW}))"
+IS_ON = lambda i: f"({HAS(i)} & {STARTED(i)})"   # on now
 
 
 def row(j):
     i = f"(gv(calidx) + {j})"
     # the next thing today: not started yet, and everything before it has
-    nxt = f"({HAS(i)} & {DAY(S(i))} = {TODAY_N} & df(yyyyMMddHHmm, {S(i)}) > {NOW_N} & ({i} = 0 | {IS_ON(f'({i} - 1)')}))"
+    nxt = (f"({HAS(i)} & ci(allday, {i}) = 0 & {DAY(S(i))} = {TODAY_N} & {START_M(i)} > {MIN_NOW}"
+           f" & ({i} = 0 | {IS_ON(f'({i} - 1)')}))")
     when = (f'$if({DAY(S(i))} <= {TODAY_N}, "Today", {DAY(S(i))} = df(yyyyMMdd, a1d), "Tomorrow", df("EEE d MMM", {S(i)}))'
             f' + " · " + if(ci(allday, {i}) = 1, "All day",\n'
             f'  {IS_ON(i)}, "Now · until " + if({DAY(E(i))} = {TODAY_N}, df(HH:mm, {E(i)}), df("EEE HH:mm", {E(i)})),\n'
@@ -400,11 +405,13 @@ def row(j):
             f' + if({nxt}, "  [c=" + {CI(LAKE)} + "][b]" + tf({S(i)}) + "[/b][/c]", "")$')
     has_loc = f'ci(loc, {i}) != ""'
     # "Leave by 13:52 · 27 min drive" / "Leave now": from this card's journey globals (see journey_globals)
-    shows_leave = f"gv(show{j}) = 1"
-    left = f"(gv(mins{j}) - gv(leave{j}))"            # minutes until it's time to go
+    due = (f'(ci(loc, {i}) != "" & ci(allday, {i}) = 0 & {DAY(S(i))} = {TODAY_N}'
+           f' & {START_M(i)} > {MIN_NOW} & {START_M(i)} - {MIN_NOW} <= 240)')
+    shows_leave = f"({due} & tc(len, gv(drive{j})) > 0)"
+    left = f"({START_M(i)} - {MIN_NOW} - gv(leave{j}))"            # minutes until it's time to go
     at = f"({MIN_NOW} + {left})"                       # leave-by, as minutes since midnight
     hhmm = f'(if({at} < 600, "0", "") + mu(floor, {at} / 60) + ":" + if({at} % 60 < 10, "0", "") + ({at} % 60))'
-    leave = (f'$if(gv(mins{j}) <= gv(leave{j}), "[c={AMBER}][b]Leave now[/b][/c] · " + gv(drive{j}) + " min drive",'
+    leave = (f'$if({START_M(i)} - {MIN_NOW} <= gv(leave{j}), "[c={AMBER}][b]Leave now[/b][/c] · " + gv(drive{j}) + " min drive",'
              f' "[c=" + {CI(LAKE)} + "][b]Leave by " + {hhmm} + "[/b][/c] · " + gv(drive{j}) + " min drive")$')
     text_w = {"internal_toggles": {"text_width": 10},
               "internal_formulas": {"text_width": f"$if({has_loc}, {IW - 104}, {IW - 48})$"}}
@@ -471,6 +478,26 @@ bottom = overlap([rect(W, 40, C(SURFACE), 22, anchor="TOP"), rect(W, 20, C(SURFA
 whats_on = stack([header] + [row(j) for j in range(PAGE)] + [no_events], "VERTICAL_LEFT", 0,
                  internal_title="What's on")
 items = [banner, whats_on, bottom]
+
+
+def offsets_to_padding(o):
+    if isinstance(o, dict):
+        for a, b in (("position_offset_x", "position_padding_left"), ("position_offset_y", "position_padding_top")):
+            if a in o:
+                o[b] = o.pop(a)
+            t, fm = o.get("internal_toggles", {}), o.get("internal_formulas", {})
+            if a in t:
+                t[b] = t.pop(a)
+            if a in fm:
+                fm[b] = fm.pop(a)
+        for v in o.values():
+            offsets_to_padding(v)
+    elif isinstance(o, list):
+        for x in o:
+            offsets_to_padding(x)
+
+
+offsets_to_padding(banner)
 
 # Clip: a komponent, so the calendar globals come with it when pasted
 komponent = {"internal_type": "KomponentModule", "internal_title": "Misty Forest", "globals_list": GLOBALS,
