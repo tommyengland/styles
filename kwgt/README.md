@@ -10,6 +10,8 @@ Copy the whole file, including the `##KUSTOMCLIP##` line, then long-press inside
   For today's events with a location, from 4 hours before the start, the row also shows "Leave by 13:52 · 27 min drive", which turns into "**Leave now**" (amber) when it's time.
   KWGT works this out by itself. It looks up the place on Photon (OpenStreetMap), gets the drive from the phone's current location on OSRM's public router,
   adds 15% because that router has no traffic data, then adds 10 minutes to park. No accounts or keys are needed. The phone needs location access for KWGT.
+  Each card's journey is worked out once, in its globals (`trip0`–`trip4`, `mins`, `route`, `drive`, `leave`, `show`), and its text, visibility and height read those.
+  The web lookups are only asked for when `trip` says a journey is due.
 
 Taps open your default clock app (time), Google's weather forecast (weather) and your default calendar app (What's on). To use a different app, select the item in KWGT, go to its **Touch** tab and pick **Launch app**.
 

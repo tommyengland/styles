@@ -350,6 +350,38 @@ GLOBALS = {
 }
 
 S = lambda i: f"ci(start, {i})"
+
+
+def journey_globals(j, base):
+    """The journey for card j, worked out once and reused by its text, visibility and height.
+    Layers: trip (eligible?) -> route (OSRM seconds) -> drive (min, +15%) -> leave (drive + 10 min);
+    mins (minutes until the start) and show (trip and a route found) for the card to use."""
+    i = f"(gv(calidx) + {j})"
+    start_m = f"(df(H, {S(i)})*60 + df(m, {S(i)}))"
+    geo = lambda k: (f'wg("https://photon.komoot.io/api/?limit=1&q=" + tc(url, ci(loc, {i})), json, '
+                     f'".features[0].geometry.coordinates[{k}]")')
+    osrm = (f'wg("https://router.project-osrm.org/route/v1/driving/" + li(lon) + "," + li(lat) + ";" + '
+            f'{geo(0)} + "," + {geo(1)} + "?overview=false", json, ".routes[0].duration")')
+    f = lambda n, typ, title, formula: (f"{n}{j}", {"index": base + n_order.index(n), "type": typ,
+                                                    "title": f"Card {j + 1} {title}", "value": "", "toggles": 10,
+                                                    "global_formula": formula})
+    n_order = ["trip", "mins", "route", "drive", "leave", "show"]
+    return dict([
+        # today, timed, not started, has a place, starts within 4 hours
+        f("trip", "NUMBER", "journey due", f'$if(ci(loc, {i}) != "" & ci(allday, {i}) = 0 & df(yyyyMMdd, {S(i)}) = df(yyyyMMdd)'
+                                          f' & df(yyyyMMddHHmm, {S(i)}) > df(yyyyMMddHHmm)'
+                                          f' & {start_m} - {MIN_NOW} <= 240, 1, 0)$'),
+        f("mins", "NUMBER", "minutes to start", f"${start_m} - {MIN_NOW}$"),
+        # the only place the web lookups live; asked for only when the journey is due
+        f("route", "TEXT", "route seconds", f'$if(gv(trip{j}) = 1, {osrm}, "")$'),
+        f("drive", "TEXT", "drive minutes", f'$if(gv(route{j}) != "", mu(ceil, gv(route{j}) * 1.15 / 60), "")$'),
+        f("leave", "TEXT", "leave allowance", f'$if(gv(drive{j}) != "", gv(drive{j}) + 10, "")$'),
+        f("show", "NUMBER", "show leave-by", f'$if(gv(trip{j}) = 1 & gv(route{j}) != "", 1, 0)$'),
+    ])
+
+
+for _j in range(PAGE):
+    GLOBALS.update(journey_globals(_j, 3 + _j * 6))
 E = lambda i: f"ci(end, {i})"
 DAY = lambda d: f"df(yyyyMMdd, {d})"
 TODAY_N, NOW_N = "df(yyyyMMdd)", "df(yyyyMMddHHmm)"
@@ -367,23 +399,13 @@ def row(j):
             f'  df(HH:mm, {S(i)}) + " – " + df(HH:mm, {E(i)}))'
             f' + if({nxt}, "  [c=" + {CI(LAKE)} + "][b]" + tf({S(i)}) + "[/b][/c]", "")$')
     has_loc = f'ci(loc, {i}) != ""'
-    # "Leave by 13:52 · 27 min drive", worked out by KWGT itself for today's events with a location,
-    # from 4 hours before: the place is looked up on Photon (OpenStreetMap), the drive from where the
-    # phone is now on OSRM's public router (no traffic, so +15%), plus 10 minutes to park.
-    geo = lambda k: (f'wg("https://photon.komoot.io/api/?limit=1&q=" + tc(url, ci(loc, {i})), json, '
-                     f'".features[0].geometry.coordinates[{k}]")')
-    secs = (f'wg("https://router.project-osrm.org/route/v1/driving/" + li(lon) + "," + li(lat) + ";" + '
-            f'{geo(0)} + "," + {geo(1)} + "?overview=false", json, ".routes[0].duration")')
-    drive = f"mu(ceil, {secs} * 1.15 / 60)"
-    start_m = f"(df(H, {S(i)})*60 + df(m, {S(i)}))"
-    leave_m = f"({start_m} - {drive} - 10)"
-    due = (f'({has_loc} & {DAY(S(i))} = {TODAY_N} & df(yyyyMMddHHmm, {S(i)}) > {NOW_N} & ci(allday, {i}) = 0'
-           f' & {start_m} - {MIN_NOW} <= 240)')
-    hhmm = (f'(if({leave_m} < 600, "0", "") + mu(floor, {leave_m} / 60) + ":" + '
-            f'if({leave_m} - mu(floor, {leave_m} / 60) * 60 < 10, "0", "") + ({leave_m} - mu(floor, {leave_m} / 60) * 60))')
-    shows_leave = f"({due} & {secs} != \"\")"
-    leave = (f'$if({MIN_NOW} >= {leave_m}, "[c={AMBER}][b]Leave now[/b][/c] · " + {drive} + " min drive",'
-             f' "[c=" + {CI(LAKE)} + "][b]Leave by " + {hhmm} + "[/b][/c] · " + {drive} + " min drive")$')
+    # "Leave by 13:52 · 27 min drive" / "Leave now": from this card's journey globals (see journey_globals)
+    shows_leave = f"gv(show{j}) = 1"
+    left = f"(gv(mins{j}) - gv(leave{j}))"            # minutes until it's time to go
+    at = f"({MIN_NOW} + {left})"                       # leave-by, as minutes since midnight
+    hhmm = f'(if({at} < 600, "0", "") + mu(floor, {at} / 60) + ":" + if({at} % 60 < 10, "0", "") + ({at} % 60))'
+    leave = (f'$if(gv(mins{j}) <= gv(leave{j}), "[c={AMBER}][b]Leave now[/b][/c] · " + gv(drive{j}) + " min drive",'
+             f' "[c=" + {CI(LAKE)} + "][b]Leave by " + {hhmm} + "[/b][/c] · " + gv(drive{j}) + " min drive")$')
     text_w = {"internal_toggles": {"text_width": 10},
               "internal_formulas": {"text_width": f"$if({has_loc}, {IW - 104}, {IW - 48})$"}}
 
