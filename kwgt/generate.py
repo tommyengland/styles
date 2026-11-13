@@ -59,11 +59,11 @@ SKY = (f"$if({DAWN} | {DUSK}, #FFB0705A,\n"
        "  wi(icon) = FOG, #FF77858A,\n"
        "  #FF5B819A)$")
 
-APP = lambda comp, label: ("intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;"
-                           f"component={comp};S.org.kustom.intent.label={label};end")
-APP_CLOCK = APP("com.oneplus.deskclock/com.oplus.alarmclock.AlarmClock", "Clock")
-APP_WEATHER = APP("com.weawow/.GoldenIcon", "Weawow")
-APP_CAL = APP("biz.codespark.xcalendarapp/crc64c040fa4b38b83970.MainActivity", "OneCalendar")
+# Taps open whatever the phone uses by default, so they work whichever apps are installed:
+# the default clock (alarms) and calendar apps, and the kiosk's own Weather page.
+APP_CLOCK = "intent:#Intent;action=android.intent.action.SHOW_ALARMS;end"
+APP_CAL = "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.APP_CALENDAR;end"
+APP_WEATHER = "https://barrellfamily.duckdns.org/local/weather.html#Intent;action=android.intent.action.VIEW;end"
 LIGHT = "kfile://org.kustom.provider/fonts/Roboto-Light.ttf"
 
 
