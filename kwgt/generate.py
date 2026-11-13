@@ -80,7 +80,25 @@ def tap(m, intent):
     return m
 
 
+LAYERS = ("StackLayerModule", "OverlapLayerModule", "KomponentModule")
+POSITION = ("position_anchor", "position_offset_x", "position_offset_y", "position_padding_left",
+            "position_padding_top", "position_padding_right", "position_padding_bottom")
+
+
 def visible(m, cond):
+    """Show m only when cond holds. KWGT only honours show/hide on groups (layers), not on a single
+    shape, text or icon, so an item is put in its own small group, which takes its position too."""
+    if m.get("internal_type") not in LAYERS:
+        item = m
+        m = {"internal_type": "OverlapLayerModule", "viewgroup_items": [item]}
+        if "internal_title" in item:
+            m["internal_title"] = item["internal_title"]
+        for k in POSITION:
+            if k in item:
+                m[k] = item.pop(k)
+        for k in [k for k in item.get("internal_toggles", {}) if k.startswith("position_")]:
+            m.setdefault("internal_toggles", {})[k] = item["internal_toggles"].pop(k)
+            m.setdefault("internal_formulas", {})[k] = item["internal_formulas"].pop(k)
     m.setdefault("internal_toggles", {})["config_visible"] = 10
     m.setdefault("internal_formulas", {})["config_visible"] = f"$if({cond}, ALWAYS, REMOVE)$"
     return m
@@ -503,6 +521,14 @@ offsets_to_padding(banner)
 komponent = {"internal_type": "KomponentModule", "internal_title": "Misty Forest", "globals_list": GLOBALS,
              "position_anchor": "TOPLEFT", "position_offset_x": 10.0, "position_offset_y": 10.0,
              "viewgroup_items": [stack(items, "VERTICAL_LEFT", 0)]}
+# Bracket every formula fully (KWGT doesn't seem to apply and/or/compare in the usual order)
+from kexpr import bracket_tree
+_errors = []
+bracket_tree(items, _errors)
+bracket_tree(GLOBALS, _errors)
+if _errors:
+    raise SystemExit("formulas I couldn't read:\n" + "\n".join(_errors[:20]))
+
 with open(OUT, "w") as f:
     f.write("##KUSTOMCLIP##\n" + json.dumps({"clip_version": 1, "clip_cut": [], "clip_modules": [komponent]},
                                            separators=(",", ":"), ensure_ascii=False) + "\n##KUSTOMCLIP##\n")
