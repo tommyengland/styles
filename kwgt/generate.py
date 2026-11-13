@@ -291,5 +291,24 @@ root = stack([banner, whats_on, bottom], "VERTICAL_LEFT", 0, internal_title="Mis
 
 with open(OUT, "w") as f:
     f.write("##KUSTOMCLIP##\n" + json.dumps({"clip_version": 1, "clip_cut": [], "clip_modules": [root]},
-separators=(",", ":"), ensure_ascii=False))
+                                           separators=(",", ":"), ensure_ascii=False))
 print("wrote", OUT)
+
+# The same widget as a whole preset (.kwgt = a zip holding preset.json), to load from KWGT's
+# menu instead of pasting. Layout as in presets exported by KWGT itself.
+import copy, zipfile
+widget = copy.deepcopy(root)
+widget.update(position_offset_x=0.0, position_offset_y=0.0)
+preset = {
+    "preset_info": {"version": 13, "title": "Misty Forest",
+                    "description": "Clock, weather and calendar in the style of the Home Kiosk (Misty Forest v2)",
+                    "author": "", "email": "", "archive": None, "features": "WEATHER FORECAST CALENDAR",
+                    "width": W, "height": 760, "xscreens": 0, "yscreens": 0,
+                    "release": 377435216, "locked": False, "pflags": 0},
+    "preset_root": {"internal_type": "RootLayerModule", "config_scale_value": 100.0,
+                    "viewgroup_items": [widget]},
+}
+KWGT = os.path.join(os.path.dirname(OUT), "misty-forest.kwgt")
+with zipfile.ZipFile(KWGT, "w", zipfile.ZIP_DEFLATED) as z:
+    z.writestr("preset.json", json.dumps(preset, indent=2, ensure_ascii=False))
+print("wrote", KWGT)
